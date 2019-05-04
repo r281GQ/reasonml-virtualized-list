@@ -4,26 +4,34 @@
 var React = require("react");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
+var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
 
-function log(prim) {
-  console.log(prim);
-  return /* () */0;
-}
-
-var items = Belt_Array.map(Belt_Array.range(0, 100), (function (id) {
-        return React.createElement(Item$ReactHooksTemplate.make, {
-                    id: id,
-                    key: String(id)
-                  });
+var data = Belt_Array.map(Belt_Array.range(0, 100), (function (id) {
+        return /* record */[
+                /* id */id,
+                /* sampleString */String(id)
+              ];
       }));
 
 function App(Props) {
-  return React.createElement("div", undefined, items);
+  var testRef = React.useRef(null);
+  return React.createElement("div", undefined, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
+                  data: data,
+                  renderItem: (function (data) {
+                      return React.createElement(Item$ReactHooksTemplate.make, {
+                                  id: data[/* id */0],
+                                  key: String(data[/* id */0]),
+                                  ref: testRef
+                                });
+                    }),
+                  identity: (function (data) {
+                      return data[/* id */0];
+                    })
+                }));
 }
 
 var make = App;
 
-exports.log = log;
-exports.items = items;
+exports.data = data;
 exports.make = make;
-/* items Not a pure module */
+/* data Not a pure module */

@@ -3,54 +3,61 @@
 
 var Css = require("bs-css/src/Css.js");
 var React = require("react");
+var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
+var Caml_option = require("bs-platform/lib/js/caml_option.js");
 
-function Item(Props) {
-  var id = Props.id;
-  var match = id % 2 === 0;
-  return React.createElement("div", {
-              className: Css.style(/* :: */[
-                    Css.borderRadius(Css.px(8)),
+var make = React.forwardRef((function (Props, ref_) {
+        var id = Props.id;
+        var match = id % 2 === 0;
+        var tmp = {
+          className: Css.style(/* :: */[
+                Css.borderRadius(Css.px(8)),
+                /* :: */[
+                  Css.display(/* flex */-1010954439),
+                  /* :: */[
+                    Css.flexDirection(Css.row),
                     /* :: */[
-                      Css.display(/* flex */-1010954439),
+                      Css.justifyContent(Css.center),
                       /* :: */[
-                        Css.flexDirection(Css.row),
+                        Css.marginBottom(Css.px(8)),
                         /* :: */[
-                          Css.justifyContent(Css.center),
+                          Css.marginTop(Css.px(8)),
                           /* :: */[
-                            Css.marginBottom(Css.px(8)),
+                            Css.backgroundColor(match ? Css.hex("793698") : Css.hex("d6b4e7")),
                             /* :: */[
-                              Css.marginTop(Css.px(8)),
-                              /* :: */[
-                                Css.backgroundColor(match ? Css.hex("793698") : Css.hex("d6b4e7")),
-                                /* :: */[
-                                  Css.height(Css.px(200)),
-                                  /* [] */0
-                                ]
-                              ]
+                              Css.height(Css.px(200)),
+                              /* [] */0
                             ]
                           ]
                         ]
                       ]
                     ]
-                  ])
-            }, React.createElement("div", {
-                  className: Css.style(/* :: */[
-                        Css.display(/* flex */-1010954439),
-                        /* :: */[
-                          Css.flexDirection(Css.column),
-                          /* :: */[
-                            Css.justifyContent(Css.center),
-                            /* :: */[
-                              Css.fontSize(Css.px(20)),
-                              /* [] */0
-                            ]
-                          ]
-                        ]
-                      ])
-                }, String(id)));
-}
-
-var make = Item;
+                  ]
+                ]
+              ])
+        };
+        var tmp$1 = Belt_Option.map((ref_ == null) ? undefined : Caml_option.some(ref_), (function (prim) {
+                return prim;
+              }));
+        if (tmp$1 !== undefined) {
+          tmp.ref = Caml_option.valFromOption(tmp$1);
+        }
+        return React.createElement("div", tmp, React.createElement("div", {
+                        className: Css.style(/* :: */[
+                              Css.display(/* flex */-1010954439),
+                              /* :: */[
+                                Css.flexDirection(Css.column),
+                                /* :: */[
+                                  Css.justifyContent(Css.center),
+                                  /* :: */[
+                                    Css.fontSize(Css.px(20)),
+                                    /* [] */0
+                                  ]
+                                ]
+                              ]
+                            ])
+                      }, String(id)));
+      }));
 
 exports.make = make;
-/* Css Not a pure module */
+/* make Not a pure module */
