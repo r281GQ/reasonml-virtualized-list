@@ -19,7 +19,6 @@ function VirtualizedList(Props) {
   var renderItem = Props.renderItem;
   var identity = Props.identity;
   var innerRef = Props.innerRef;
-  var viewPortRef = React.useRef(null);
   var match = React.useState((function () {
           return 0;
         }));
@@ -30,17 +29,9 @@ function VirtualizedList(Props) {
         }));
   var setEndindex = match$1[1];
   var endIndex = match$1[0];
+  var viewPortRef = React.useRef(null);
   var refMap = React.useRef(Belt_HashMapInt.make(100));
-  Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(innerRef.current), (function (prim) {
-              return prim;
-            })), (function (prim) {
-          return prim.clientHeight;
-        }));
-  Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-              return prim;
-            })), (function (prim) {
-          return prim.clientHeight;
-        }));
+  React.useRef(Belt_HashMapInt.make(100));
   React.useEffect((function () {
           Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(innerRef.current), (function (prim) {
                       return prim;
@@ -72,45 +63,47 @@ function VirtualizedList(Props) {
                     return /* () */0;
                   });
         }), /* array */[]);
-  return React.createElement("div", {
-              ref: viewPortRef
-            }, React.createElement("div", {
+  return React.createElement(React.Fragment, {
+              children: null
+            }, React.createElement("button", {
                   className: Css.style(/* :: */[
-                        Css.paddingTop(Css.px(Caml_int32.imul(startIndex, 200))),
+                        Css.display(Css.block),
                         /* :: */[
-                          Css.paddingBottom(Css.px(Caml_int32.imul(data.length - endIndex | 0, 200))),
-                          /* [] */0
+                          Css.marginLeft(Css.auto),
+                          /* :: */[
+                            Css.marginRight(Css.auto),
+                            /* [] */0
+                          ]
                         ]
-                      ])
-                }, React.createElement("button", {
+                      ]),
+                  onClick: (function (_e) {
+                      return Curry._1(setStartIndex, (function (prevIndex) {
+                                    return prevIndex + 1 | 0;
+                                  }));
+                    })
+                }, "Trigger rerender"), React.createElement("div", {
+                  ref: viewPortRef
+                }, React.createElement("div", {
                       className: Css.style(/* :: */[
-                            Css.display(Css.block),
+                            Css.paddingTop(Css.px(Caml_int32.imul(startIndex, 200))),
                             /* :: */[
-                              Css.marginLeft(Css.auto),
-                              /* :: */[
-                                Css.marginRight(Css.auto),
-                                /* [] */0
-                              ]
+                              Css.paddingBottom(Css.px(Caml_int32.imul(data.length - endIndex | 0, 200))),
+                              /* [] */0
                             ]
-                          ]),
-                      onClick: (function (_e) {
-                          return Curry._1(setStartIndex, (function (prevIndex) {
-                                        return prevIndex + 1 | 0;
-                                      }));
-                        })
-                    }, "Trigger rerender"), Belt_Array.map(Belt_Array.map(Belt_Array.slice(data, startIndex, (endIndex - startIndex | 0) + 5 | 0), (function (item) {
-                            return /* tuple */[
-                                    Curry._1(renderItem, item),
-                                    Curry._1(identity, item)
-                                  ];
-                          })), (function (itemTuple) {
-                        var id = itemTuple[1];
-                        return React.cloneElement(itemTuple[0], {
-                                    ref: (function (elementRef) {
-                                        return Belt_HashMapInt.set(refMap.current, id, elementRef);
-                                      })
-                                  });
-                      }))));
+                          ])
+                    }, Belt_Array.map(Belt_Array.map(Belt_Array.slice(data, startIndex, (endIndex - startIndex | 0) + 5 | 0), (function (item) {
+                                return /* tuple */[
+                                        Curry._1(renderItem, item),
+                                        Curry._1(identity, item)
+                                      ];
+                              })), (function (itemTuple) {
+                            var id = itemTuple[1];
+                            return React.cloneElement(itemTuple[0], {
+                                        ref: (function (elementRef) {
+                                            return Belt_HashMapInt.set(refMap.current, id, elementRef);
+                                          })
+                                      });
+                          })))));
 }
 
 var make = VirtualizedList;
