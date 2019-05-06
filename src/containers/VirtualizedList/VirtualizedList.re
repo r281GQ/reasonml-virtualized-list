@@ -2,6 +2,11 @@ type keyProps = {. ref: string};
 
 let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
+type rectangle = {
+  top: int,
+  bottom: int,
+};
+
 [@react.component]
 let make = (~data, ~renderItem, ~identity, ~innerRef) => {
   let viewPortRef = React.useRef(Js.Nullable.null);
@@ -46,14 +51,20 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
             Webapi.Dom.HtmlElement.addEventListener(
               "scroll",
               _e => {
-                let h = 0;
-
-                // Js.log(Webapi.Dom.HtmlElement.clientHeight(e));
-                // Js.log(Webapi.Dom.HtmlElement.scrollHeight(e));
-                // Js.log(Webapi.Dom.HtmlElement.scrollTop(e));
-
                 setStartIndex(_prev =>
                   int_of_float(scrollTop(element) /. 200.)
+                );
+
+                setEndindex(_prev =>
+                  int_of_float(
+                    (
+                      scrollTop(element)
+                      +. float_of_int(
+                           Webapi.Dom.HtmlElement.clientHeight(element),
+                         )
+                    )
+                    /. 200.,
+                  )
                 );
               },
               element,
@@ -61,17 +72,55 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
           )
       );
 
-      None;
+      Some(
+        () => {
+          Belt.Option.(
+            innerRef
+            ->React.Ref.current
+            ->Js.Nullable.toOption
+            ->map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ->map(element =>
+                Webapi.Dom.HtmlElement.removeEventListener(
+                  "scroll",
+                  _e => {
+                    setStartIndex(_prev =>
+                      int_of_float(scrollTop(element) /. 200.)
+                    );
+
+                    setEndindex(_prev =>
+                      int_of_float(
+                        (
+                          scrollTop(element)
+                          +. float_of_int(
+                               Webapi.Dom.HtmlElement.clientHeight(element),
+                             )
+                        )
+                        /. 200.,
+                      )
+                    );
+                  },
+                  element,
+                )
+              )
+          );
+
+          ();
+        },
+      );
     },
     [||],
   );
 
-  Js.log(startIndex);
-
-  Js.log(endIndex);
+  let paddingBottom = (Belt.Array.length(data) - endIndex) * 200;
 
   <div ref={viewPortRef->ReactDOMRe.Ref.domRef}>
-    <div className=Css.(style([paddingTop(px(0)), paddingBottom(px(0))]))>
+    <div
+      className=Css.(
+        style([
+          paddingTop(px(startIndex * 200)),
+          paddingBottom(px((Belt.Array.length(data) - endIndex) * 200)),
+        ])
+      )>
       <button
         className=Css.(
           style([display(block), marginLeft(auto), marginRight(auto)])
@@ -81,6 +130,7 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
       </button>
       Belt.Array.(
         data
+        ->slice(startIndex, endIndex - startIndex + 5)
         ->map(item => (renderItem(item), identity(item)))
         ->map(itemTuple => {
             let (element, id) = itemTuple;

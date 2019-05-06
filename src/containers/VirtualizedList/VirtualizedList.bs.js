@@ -5,6 +5,7 @@ var Css = require("bs-css/src/Css.js");
 var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
+var Caml_int32 = require("bs-platform/lib/js/caml_int32.js");
 var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
 var Caml_option = require("bs-platform/lib/js/caml_option.js");
 var Belt_HashMapInt = require("bs-platform/lib/js/belt_HashMapInt.js");
@@ -23,9 +24,12 @@ function VirtualizedList(Props) {
           return 0;
         }));
   var setStartIndex = match[1];
+  var startIndex = match[0];
   var match$1 = React.useState((function () {
           return 10;
         }));
+  var setEndindex = match$1[1];
+  var endIndex = match$1[0];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(innerRef.current), (function (prim) {
               return prim;
@@ -42,23 +46,39 @@ function VirtualizedList(Props) {
                       return prim;
                     })), (function (element) {
                   element.addEventListener("scroll", (function (_e) {
-                          return Curry._1(setStartIndex, (function (_prev) {
-                                        return element.scrollTop / 200 | 0;
+                          Curry._1(setStartIndex, (function (_prev) {
+                                  return element.scrollTop / 200 | 0;
+                                }));
+                          return Curry._1(setEndindex, (function (_prev) {
+                                        return (element.scrollTop + element.clientHeight) / 200 | 0;
                                       }));
                         }));
                   return /* () */0;
                 }));
-          return undefined;
+          return (function (param) {
+                    Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(innerRef.current), (function (prim) {
+                                return prim;
+                              })), (function (element) {
+                            element.removeEventListener("scroll", (function (_e) {
+                                    Curry._1(setStartIndex, (function (_prev) {
+                                            return element.scrollTop / 200 | 0;
+                                          }));
+                                    return Curry._1(setEndindex, (function (_prev) {
+                                                  return (element.scrollTop + element.clientHeight) / 200 | 0;
+                                                }));
+                                  }));
+                            return /* () */0;
+                          }));
+                    return /* () */0;
+                  });
         }), /* array */[]);
-  console.log(match[0]);
-  console.log(match$1[0]);
   return React.createElement("div", {
               ref: viewPortRef
             }, React.createElement("div", {
                   className: Css.style(/* :: */[
-                        Css.paddingTop(Css.px(0)),
+                        Css.paddingTop(Css.px(Caml_int32.imul(startIndex, 200))),
                         /* :: */[
-                          Css.paddingBottom(Css.px(0)),
+                          Css.paddingBottom(Css.px(Caml_int32.imul(data.length - endIndex | 0, 200))),
                           /* [] */0
                         ]
                       ])
@@ -78,7 +98,7 @@ function VirtualizedList(Props) {
                                         return prevIndex + 1 | 0;
                                       }));
                         })
-                    }, "Trigger rerender"), Belt_Array.map(Belt_Array.map(data, (function (item) {
+                    }, "Trigger rerender"), Belt_Array.map(Belt_Array.map(Belt_Array.slice(data, startIndex, (endIndex - startIndex | 0) + 5 | 0), (function (item) {
                             return /* tuple */[
                                     Curry._1(renderItem, item),
                                     Curry._1(identity, item)
