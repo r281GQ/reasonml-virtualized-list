@@ -12,16 +12,13 @@ let data =
 let make = () => {
   let testRef = React.useRef(Js.Nullable.null);
 
-  <div>
+  <div
+    ref={testRef->ReactDOMRe.Ref.domRef}
+    className=Css.(style([maxHeight(vh(100.)), overflowY(`scroll)]))>
     <VirtualizedList
+      innerRef=testRef
       data
-      renderItem={data =>
-        <Item
-          key={data.id->string_of_int}
-          id={data.id}
-          ref={testRef->ReactDOMRe.Ref.domRef}
-        />
-      }
+      renderItem={data => <Item key={data.id->string_of_int} id={data.id} />}
       identity={data => data.id}
     />
   </div>;
