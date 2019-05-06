@@ -1,5 +1,7 @@
 type keyProps = {. ref: string};
 
+type data;
+
 type rectangle = {
   top: int,
   bottom: int,
@@ -8,11 +10,17 @@ type rectangle = {
 let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
 [@react.component]
-let make = (~data, ~renderItem, ~identity, ~innerRef) => {
+let make =
+    (
+      ~bufferCount=5,
+      ~defaultHeight=200,
+      ~data: array('data),
+      ~identity: 'data => int,
+      ~viewPortRef,
+      ~renderItem: 'data => React.element,
+    ) => {
   let (startIndex, setStartIndex) = React.useState(() => 0);
   let (endIndex, setEndindex) = React.useState(() => 10);
-
-  let viewPortRef = React.useRef(Js.Nullable.null);
 
   let refMap = React.useRef(Belt.HashMap.Int.make(100));
 
@@ -21,7 +29,7 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
   React.useEffect1(
     () => {
       Belt.Option.(
-        innerRef
+        viewPortRef
         ->React.Ref.current
         ->Js.Nullable.toOption
         ->map(Webapi.Dom.Element.unsafeAsHtmlElement)
@@ -29,21 +37,26 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
             Webapi.Dom.HtmlElement.addEventListener(
               "scroll",
               _e => {
-                setStartIndex(_prev =>
-                  int_of_float(scrollTop(element) /. 200.)
-                );
+                setStartIndex(_prev => {
+                  let value = int_of_float(scrollTop(element) /. 200.);
 
-                setEndindex(_prev =>
-                  int_of_float(
-                    (
-                      scrollTop(element)
-                      +. float_of_int(
-                           Webapi.Dom.HtmlElement.clientHeight(element),
-                         )
-                    )
-                    /. 200.,
-                  )
-                );
+                  value - bufferCount < 0 ? 0 : value - bufferCount;
+                });
+
+                setEndindex(_prev => {
+                  let value =
+                    int_of_float(
+                      (
+                        scrollTop(element)
+                        +. float_of_int(
+                             Webapi.Dom.HtmlElement.clientHeight(element),
+                           )
+                      )
+                      /. 200.,
+                    );
+
+                  value + bufferCount >= 25 ? 25 + 1 : value + bufferCount;
+                });
               },
               element,
             )
@@ -53,30 +66,14 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
       Some(
         () => {
           Belt.Option.(
-            innerRef
+            viewPortRef
             ->React.Ref.current
             ->Js.Nullable.toOption
             ->map(Webapi.Dom.Element.unsafeAsHtmlElement)
             ->map(element =>
                 Webapi.Dom.HtmlElement.removeEventListener(
                   "scroll",
-                  _e => {
-                    setStartIndex(_prev =>
-                      int_of_float(scrollTop(element) /. 200.)
-                    );
-
-                    setEndindex(_prev =>
-                      int_of_float(
-                        (
-                          scrollTop(element)
-                          +. float_of_int(
-                               Webapi.Dom.HtmlElement.clientHeight(element),
-                             )
-                        )
-                        /. 200.,
-                      )
-                    );
-                  },
+                  _e => (),
                   element,
                 )
               )
@@ -89,15 +86,10 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
     [||],
   );
 
+  React.useEffect1(() => None, [||]);
+
   <React.Fragment>
-    <button
-      className=Css.(
-        style([display(block), marginLeft(auto), marginRight(auto)])
-      )
-      onClick={_e => setStartIndex(prevIndex => prevIndex + 1)}>
-      {ReasonReact.string("Trigger rerender")}
-    </button>
-    <div ref={viewPortRef->ReactDOMRe.Ref.domRef}>
+    <div>
       <div
         className=Css.(
           style([
@@ -107,7 +99,7 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
         )>
         Belt.Array.(
           data
-          ->slice(startIndex, endIndex - startIndex + 5)
+          ->slice(startIndex, endIndex - startIndex)
           ->map(item => (renderItem(item), identity(item)))
           ->map(itemTuple => {
               let (element, id) = itemTuple;
@@ -116,11 +108,11 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
                 element,
                 ~props={
                   "ref": elementRef =>
-                    Belt.HashMap.Int.set(
-                      React.Ref.current(refMap),
-                      id,
-                      elementRef,
-                    ),
+                    {Belt.HashMap.Int.set(
+                       React.Ref.current(refMap),
+                       id,
+                       elementRef,
+                     )},
                 },
                 [||],
               );
@@ -130,4 +122,11 @@ let make = (~data, ~renderItem, ~identity, ~innerRef) => {
       </div>
     </div>
   </React.Fragment>;
+  // </button>
+  //   {ReasonReact.string("Trigger rerender")}
+  //   onClick={_e => setStartIndex(prevIndex => prevIndex + 1)}>
+  //   )
+  //     style([display(block), marginLeft(auto), marginRight(auto)])
+  //   className=Css.(
+  // <button
 };

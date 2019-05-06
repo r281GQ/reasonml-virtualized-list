@@ -15,95 +15,89 @@ function scrollTop(prim) {
 }
 
 function VirtualizedList(Props) {
+  var match = Props.bufferCount;
+  var bufferCount = match !== undefined ? match : 5;
+  Props.defaultHeight;
   var data = Props.data;
-  var renderItem = Props.renderItem;
   var identity = Props.identity;
-  var innerRef = Props.innerRef;
-  var match = React.useState((function () {
+  var viewPortRef = Props.viewPortRef;
+  var renderItem = Props.renderItem;
+  var match$1 = React.useState((function () {
           return 0;
         }));
-  var setStartIndex = match[1];
-  var startIndex = match[0];
-  var match$1 = React.useState((function () {
+  var setStartIndex = match$1[1];
+  var startIndex = match$1[0];
+  var match$2 = React.useState((function () {
           return 10;
         }));
-  var setEndindex = match$1[1];
-  var endIndex = match$1[0];
-  var viewPortRef = React.useRef(null);
+  var setEndindex = match$2[1];
+  var endIndex = match$2[0];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   React.useRef(Belt_HashMapInt.make(100));
   React.useEffect((function () {
-          Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(innerRef.current), (function (prim) {
+          Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                       return prim;
                     })), (function (element) {
                   element.addEventListener("scroll", (function (_e) {
                           Curry._1(setStartIndex, (function (_prev) {
-                                  return element.scrollTop / 200 | 0;
+                                  var value = element.scrollTop / 200 | 0;
+                                  var match = (value - bufferCount | 0) < 0;
+                                  if (match) {
+                                    return 0;
+                                  } else {
+                                    return value - bufferCount | 0;
+                                  }
                                 }));
                           return Curry._1(setEndindex, (function (_prev) {
-                                        return (element.scrollTop + element.clientHeight) / 200 | 0;
+                                        var value = (element.scrollTop + element.clientHeight) / 200 | 0;
+                                        var match = (value + bufferCount | 0) >= 25;
+                                        if (match) {
+                                          return 26;
+                                        } else {
+                                          return value + bufferCount | 0;
+                                        }
                                       }));
                         }));
                   return /* () */0;
                 }));
           return (function (param) {
-                    Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(innerRef.current), (function (prim) {
+                    Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                                 return prim;
                               })), (function (element) {
                             element.removeEventListener("scroll", (function (_e) {
-                                    Curry._1(setStartIndex, (function (_prev) {
-                                            return element.scrollTop / 200 | 0;
-                                          }));
-                                    return Curry._1(setEndindex, (function (_prev) {
-                                                  return (element.scrollTop + element.clientHeight) / 200 | 0;
-                                                }));
+                                    return /* () */0;
                                   }));
                             return /* () */0;
                           }));
                     return /* () */0;
                   });
         }), /* array */[]);
+  React.useEffect((function () {
+          return undefined;
+        }), /* array */[]);
   return React.createElement(React.Fragment, {
-              children: null
-            }, React.createElement("button", {
-                  className: Css.style(/* :: */[
-                        Css.display(Css.block),
-                        /* :: */[
-                          Css.marginLeft(Css.auto),
-                          /* :: */[
-                            Css.marginRight(Css.auto),
-                            /* [] */0
-                          ]
-                        ]
-                      ]),
-                  onClick: (function (_e) {
-                      return Curry._1(setStartIndex, (function (prevIndex) {
-                                    return prevIndex + 1 | 0;
-                                  }));
-                    })
-                }, "Trigger rerender"), React.createElement("div", {
-                  ref: viewPortRef
-                }, React.createElement("div", {
-                      className: Css.style(/* :: */[
-                            Css.paddingTop(Css.px(Caml_int32.imul(startIndex, 200))),
-                            /* :: */[
-                              Css.paddingBottom(Css.px(Caml_int32.imul(data.length - endIndex | 0, 200))),
-                              /* [] */0
-                            ]
-                          ])
-                    }, Belt_Array.map(Belt_Array.map(Belt_Array.slice(data, startIndex, (endIndex - startIndex | 0) + 5 | 0), (function (item) {
-                                return /* tuple */[
-                                        Curry._1(renderItem, item),
-                                        Curry._1(identity, item)
-                                      ];
-                              })), (function (itemTuple) {
-                            var id = itemTuple[1];
-                            return React.cloneElement(itemTuple[0], {
-                                        ref: (function (elementRef) {
-                                            return Belt_HashMapInt.set(refMap.current, id, elementRef);
-                                          })
-                                      });
-                          })))));
+              children: React.createElement("div", undefined, React.createElement("div", {
+                        className: Css.style(/* :: */[
+                              Css.paddingTop(Css.px(Caml_int32.imul(startIndex, 200))),
+                              /* :: */[
+                                Css.paddingBottom(Css.px(Caml_int32.imul(data.length - endIndex | 0, 200))),
+                                /* [] */0
+                              ]
+                            ])
+                      }, Belt_Array.map(Belt_Array.map(Belt_Array.slice(data, startIndex, endIndex - startIndex | 0), (function (item) {
+                                  return /* tuple */[
+                                          Curry._1(renderItem, item),
+                                          Curry._1(identity, item)
+                                        ];
+                                })), (function (itemTuple) {
+                              var id = itemTuple[1];
+                              return React.cloneElement(itemTuple[0], {
+                                          ref: (function (elementRef) {
+                                              return Belt_HashMapInt.set(refMap.current, id, elementRef);
+                                            })
+                                        });
+                            }))))
+            });
 }
 
 var make = VirtualizedList;
