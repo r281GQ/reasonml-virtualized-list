@@ -6,9 +6,15 @@ var React = require("react");
 var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
 var Caml_option = require("bs-platform/lib/js/caml_option.js");
 
+function randomHeight(x) {
+  return x * 100 + 200;
+}
+
 var make = React.forwardRef((function (Props, ref_) {
         var id = Props.id;
-        var match = id % 2 === 0;
+        var match = Props.randomise;
+        var randomise = match !== undefined ? match : false;
+        var match$1 = id % 2 === 0;
         var tmp = {
           className: Css.style(/* :: */[
                 Css.borderRadius(Css.px(8)),
@@ -23,9 +29,9 @@ var make = React.forwardRef((function (Props, ref_) {
                         /* :: */[
                           Css.marginTop(Css.px(8)),
                           /* :: */[
-                            Css.backgroundColor(match ? Css.hex("793698") : Css.hex("d6b4e7")),
+                            Css.backgroundColor(match$1 ? Css.hex("793698") : Css.hex("d6b4e7")),
                             /* :: */[
-                              Css.height(Css.px(200)),
+                              Css.height(Css.px(randomise ? randomHeight(Math.random()) | 0 : 200)),
                               /* [] */0
                             ]
                           ]
@@ -59,5 +65,6 @@ var make = React.forwardRef((function (Props, ref_) {
                       }, String(id)));
       }));
 
+exports.randomHeight = randomHeight;
 exports.make = make;
 /* make Not a pure module */

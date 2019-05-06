@@ -7,7 +7,7 @@ var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
 var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
 
-var data = Belt_Array.map(Belt_Array.range(0, 100), (function (id) {
+var data = Belt_Array.map(Belt_Array.range(0, 25), (function (id) {
         return /* record */[
                 /* id */id,
                 /* sampleString */String(id)
@@ -27,16 +27,17 @@ function App(Props) {
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
                   data: data,
-                  renderItem: (function (data) {
-                      return React.createElement(Item$ReactHooksTemplate.make, {
-                                  id: data[/* id */0],
-                                  key: String(data[/* id */0])
-                                });
-                    }),
                   identity: (function (data) {
                       return data[/* id */0];
                     }),
-                  innerRef: testRef
+                  viewPortRef: testRef,
+                  renderItem: (function (data) {
+                      return React.createElement(Item$ReactHooksTemplate.make, {
+                                  id: data[/* id */0],
+                                  randomise: true,
+                                  key: String(data[/* id */0])
+                                });
+                    })
                 }));
 }
 

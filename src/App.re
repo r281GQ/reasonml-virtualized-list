@@ -5,7 +5,7 @@ type dataItemType = {
 
 let data =
   Belt.Array.(
-    range(0, 100)->map(id => {id, sampleString: string_of_int(id)})
+    range(0, 25)->map(id => {id, sampleString: string_of_int(id)})
   );
 
 [@react.component]
@@ -16,9 +16,11 @@ let make = () => {
     ref={testRef->ReactDOMRe.Ref.domRef}
     className=Css.(style([maxHeight(vh(100.)), overflowY(`scroll)]))>
     <VirtualizedList
-      innerRef=testRef
+      viewPortRef=testRef
       data
-      renderItem={data => <Item key={data.id->string_of_int} id={data.id} />}
+      renderItem={data =>
+        <Item randomise=true key={data.id->string_of_int} id={data.id} />
+      }
       identity={data => data.id}
     />
   </div>;
