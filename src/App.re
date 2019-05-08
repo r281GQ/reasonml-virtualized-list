@@ -1,11 +1,25 @@
+[@bs.scope "Math"] [@bs.val] external random: unit => float = "random";
+
 type dataItemType = {
   id: int,
+  heightProp: int,
   sampleString: string,
 };
 
+let unit = ();
+
+let randomHeight = x => x *. 100. +. 200.;
+
 let data =
   Belt.Array.(
-    range(0, 25)->map(id => {id, sampleString: string_of_int(id)})
+    range(0, 25)
+    ->map(id =>
+        {
+          id,
+          heightProp: unit->random->randomHeight->int_of_float,
+          sampleString: id->string_of_int,
+        }
+      )
   );
 
 [@react.component]
@@ -19,7 +33,11 @@ let make = () => {
       viewPortRef=testRef
       data
       renderItem={data =>
-        <Item randomise=true key={data.id->string_of_int} id={data.id} />
+        <Item
+          heightProp={data.heightProp}
+          key={data.id->string_of_int}
+          id={data.id}
+        />
       }
       identity={data => data.id}
     />

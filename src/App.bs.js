@@ -7,9 +7,14 @@ var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
 var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
 
+function randomHeight(x) {
+  return x * 100 + 200;
+}
+
 var data = Belt_Array.map(Belt_Array.range(0, 25), (function (id) {
         return /* record */[
                 /* id */id,
+                /* heightProp */randomHeight(Math.random()) | 0,
                 /* sampleString */String(id)
               ];
       }));
@@ -34,15 +39,19 @@ function App(Props) {
                   renderItem: (function (data) {
                       return React.createElement(Item$ReactHooksTemplate.make, {
                                   id: data[/* id */0],
-                                  randomise: true,
+                                  heightProp: data[/* heightProp */1],
                                   key: String(data[/* id */0])
                                 });
                     })
                 }));
 }
 
+var unit = /* () */0;
+
 var make = App;
 
+exports.unit = unit;
+exports.randomHeight = randomHeight;
 exports.data = data;
 exports.make = make;
 /* data Not a pure module */
