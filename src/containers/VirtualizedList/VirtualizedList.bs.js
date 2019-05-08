@@ -4,10 +4,12 @@
 var Css = require("bs-css/src/Css.js");
 var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
+var Caml_obj = require("bs-platform/lib/js/caml_obj.js");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 var Caml_int32 = require("bs-platform/lib/js/caml_int32.js");
 var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
 var Caml_option = require("bs-platform/lib/js/caml_option.js");
+var Belt_SortArray = require("bs-platform/lib/js/belt_SortArray.js");
 var Belt_HashMapInt = require("bs-platform/lib/js/belt_HashMapInt.js");
 
 function scrollTop(prim) {
@@ -15,47 +17,59 @@ function scrollTop(prim) {
 }
 
 function VirtualizedList(Props) {
-  var match = Props.bufferCount;
-  var bufferCount = match !== undefined ? match : 5;
+  Props.bufferCount;
   Props.defaultHeight;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match$1 = React.useState((function () {
+  var match = React.useState((function () {
           return 0;
         }));
-  var setStartIndex = match$1[1];
-  var startIndex = match$1[0];
-  var match$2 = React.useState((function () {
+  var setStartIndex = match[1];
+  var startIndex = match[0];
+  var match$1 = React.useState((function () {
           return 10;
         }));
-  var setEndindex = match$2[1];
-  var endIndex = match$2[0];
+  var endIndex = match$1[0];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
-  React.useRef(Belt_HashMapInt.make(100));
+  var heightMap = React.useRef(Belt_HashMapInt.make(100));
+  var sortByKey = function (a, b) {
+    var id_b = b[0];
+    var id_a = a[0];
+    var match = Caml_obj.caml_greaterthan(id_a, id_b);
+    if (match) {
+      return 1;
+    } else if (id_a === id_b) {
+      return 0;
+    } else {
+      return -1;
+    }
+  };
+  var convertToSortedArray = function (heightMap) {
+    return Belt_SortArray.stableSortBy(Belt_HashMapInt.toArray(heightMap.current), sortByKey);
+  };
   React.useEffect((function () {
           Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                       return prim;
                     })), (function (element) {
                   element.addEventListener("scroll", (function (_e) {
-                          Curry._1(setStartIndex, (function (_prev) {
-                                  var value = element.scrollTop / 200 | 0;
-                                  var match = (value - bufferCount | 0) < 0;
-                                  if (match) {
-                                    return 0;
-                                  } else {
-                                    return value - bufferCount | 0;
-                                  }
-                                }));
-                          return Curry._1(setEndindex, (function (_prev) {
-                                        var value = (element.scrollTop + element.clientHeight) / 200 | 0;
-                                        var match = (value + bufferCount | 0) >= 25;
-                                        if (match) {
-                                          return 26;
-                                        } else {
-                                          return value + bufferCount | 0;
-                                        }
+                          return Curry._1(setStartIndex, (function (_prev) {
+                                        return Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
+                                                      0,
+                                                      0
+                                                    ], (function (sum, item) {
+                                                        var sumHeight = sum[1];
+                                                        var match = sumHeight > (element.scrollTop | 0);
+                                                        if (match) {
+                                                          return sum;
+                                                        } else {
+                                                          return /* tuple */[
+                                                                  item[0],
+                                                                  item[1] + sumHeight | 0
+                                                                ];
+                                                        }
+                                                      }))[0];
                                       }));
                         }));
                   return /* () */0;
@@ -93,7 +107,12 @@ function VirtualizedList(Props) {
                               var id = itemTuple[1];
                               return React.cloneElement(itemTuple[0], {
                                           ref: (function (elementRef) {
-                                              return Belt_HashMapInt.set(refMap.current, id, elementRef);
+                                              Belt_HashMapInt.set(refMap.current, id, elementRef);
+                                              return Belt_Option.map(Belt_Option.map((elementRef == null) ? undefined : Caml_option.some(elementRef), (function (prim) {
+                                                                return prim.clientHeight;
+                                                              })), (function (height) {
+                                                            return Belt_HashMapInt.set(heightMap.current, id, height);
+                                                          }));
                                             })
                                         });
                             }))))
