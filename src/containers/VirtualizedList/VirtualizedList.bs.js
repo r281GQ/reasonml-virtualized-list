@@ -6,7 +6,6 @@ var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
 var Caml_obj = require("bs-platform/lib/js/caml_obj.js");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
-var Caml_int32 = require("bs-platform/lib/js/caml_int32.js");
 var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
 var Caml_option = require("bs-platform/lib/js/caml_option.js");
 var Belt_SortArray = require("bs-platform/lib/js/belt_SortArray.js");
@@ -18,20 +17,22 @@ function scrollTop(prim) {
 
 function VirtualizedList(Props) {
   Props.bufferCount;
-  Props.defaultHeight;
+  var match = Props.defaultHeight;
+  var defaultHeight = match !== undefined ? match : 200;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match = React.useState((function () {
+  var match$1 = React.useState((function () {
           return 0;
         }));
-  var setStartIndex = match[1];
-  var startIndex = match[0];
-  var match$1 = React.useState((function () {
+  var setStartIndex = match$1[1];
+  var startIndex = match$1[0];
+  var match$2 = React.useState((function () {
           return 10;
         }));
-  var endIndex = match$1[0];
+  var setEndIndex = match$2[1];
+  var endIndex = match$2[0];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(Belt_HashMapInt.make(100));
   var sortByKey = function (a, b) {
@@ -47,20 +48,52 @@ function VirtualizedList(Props) {
     }
   };
   var convertToSortedArray = function (heightMap) {
-    return Belt_SortArray.stableSortBy(Belt_HashMapInt.toArray(heightMap.current), sortByKey);
+    var map = heightMap.current;
+    return Belt_SortArray.stableSortBy(Belt_Array.map(Belt_Array.map(data, (function (item) {
+                          var id = Curry._1(identity, item);
+                          return /* tuple */[
+                                  id,
+                                  defaultHeight
+                                ];
+                        })), (function (item) {
+                      var id = item[0];
+                      return Belt_Option.mapWithDefault(Belt_HashMapInt.get(map, id), item, (function (measuredHeight) {
+                                    return /* tuple */[
+                                            id,
+                                            measuredHeight
+                                          ];
+                                  }));
+                    })), sortByKey);
   };
   React.useEffect((function () {
           Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                       return prim;
                     })), (function (element) {
                   element.addEventListener("scroll", (function (_e) {
-                          return Curry._1(setStartIndex, (function (_prev) {
+                          Curry._1(setStartIndex, (function (_prev) {
+                                  return Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
+                                                0,
+                                                0
+                                              ], (function (sum, item) {
+                                                  var sumHeight = sum[1];
+                                                  var match = sumHeight > (element.scrollTop | 0);
+                                                  if (match) {
+                                                    return sum;
+                                                  } else {
+                                                    return /* tuple */[
+                                                            item[0],
+                                                            item[1] + sumHeight | 0
+                                                          ];
+                                                  }
+                                                }))[0];
+                                }));
+                          return Curry._1(setEndIndex, (function (_prev) {
                                         return Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
                                                       0,
                                                       0
                                                     ], (function (sum, item) {
                                                         var sumHeight = sum[1];
-                                                        var match = sumHeight > (element.scrollTop | 0);
+                                                        var match = sumHeight > ((element.scrollTop | 0) + element.clientHeight | 0);
                                                         if (match) {
                                                           return sum;
                                                         } else {
@@ -89,12 +122,18 @@ function VirtualizedList(Props) {
   React.useEffect((function () {
           return undefined;
         }), /* array */[]);
+  var startPadding = Belt_Array.reduce(Belt_Array.slice(convertToSortedArray(heightMap), 0, startIndex), 0, (function (sum, item) {
+          return sum + item[1] | 0;
+        }));
+  var endPadding = Belt_Array.reduce(Belt_Array.slice(convertToSortedArray(heightMap), endIndex, data.length - endIndex | 0), 0, (function (sum, item) {
+          return sum + item[1] | 0;
+        }));
   return React.createElement(React.Fragment, {
               children: React.createElement("div", undefined, React.createElement("div", {
                         className: Css.style(/* :: */[
-                              Css.paddingTop(Css.px(Caml_int32.imul(startIndex, 200))),
+                              Css.paddingTop(Css.px(startPadding)),
                               /* :: */[
-                                Css.paddingBottom(Css.px(Caml_int32.imul(data.length - endIndex | 0, 200))),
+                                Css.paddingBottom(Css.px(endPadding)),
                                 /* [] */0
                               ]
                             ])

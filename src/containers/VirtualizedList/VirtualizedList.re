@@ -20,7 +20,7 @@ let make =
       ~renderItem: 'data => React.element,
     ) => {
   let (startIndex, setStartIndex) = React.useState(() => 0);
-  let (endIndex, _setEndindex) = React.useState(() => 10);
+  let (endIndex, setEndIndex) = React.useState(() => 10);
 
   let refMap = React.useRef(Belt.HashMap.Int.make(100));
 
@@ -37,10 +37,27 @@ let make =
     | _ => (-1)
     };
   };
-  let convertToSortedArray = heightMap =>
-    React.Ref.current(heightMap)
-    ->Belt.HashMap.Int.toArray
+
+  let convertToSortedArray = heightMap => {
+    let map = React.Ref.current(heightMap);
+
+    data
+    ->Belt.Array.map(item => {
+        let id = item->identity;
+
+        (id, defaultHeight);
+      })
+    ->Belt.Array.map(item => {
+        let (id, _height) = item;
+
+        map
+        ->Belt.HashMap.Int.get(id)
+        ->Belt.Option.mapWithDefault(item, measuredHeight =>
+            (id, measuredHeight)
+          );
+      })
     ->Belt.SortArray.stableSortBy(sortByKey);
+  };
 
   React.useEffect1(
     () => {
@@ -52,7 +69,7 @@ let make =
         ->map(element =>
             Webapi.Dom.HtmlElement.addEventListener(
               "scroll",
-              _e =>
+              _e => {
                 setStartIndex(_prev => {
                   let startItem =
                     convertToSortedArray(heightMap)
@@ -69,24 +86,28 @@ let make =
 
                   let (id, _item) = startItem;
                   id;
-                }),
-              // setStartIndex(_prev => {
-              //   let value = int_of_float(scrollTop(element) /. 200.);
-              //   value - bufferCount < 0 ? 0 : value - bufferCount;
-              // });
-              // setEndindex(_prev => {
-              //   let value =
-              //     int_of_float(
-              //       (
-              //         scrollTop(element)
-              //         +. float_of_int(
-              //              Webapi.Dom.HtmlElement.clientHeight(element),
-              //            )
-              //       )
-              //       /. 200.,
-              //     );
-              //   value + bufferCount >= 25 ? 25 + 1 : value + bufferCount;
-              // });
+                });
+
+                setEndIndex(_prev => {
+                  let endIndex =
+                    heightMap
+                    ->convertToSortedArray
+                    ->Belt.Array.reduce(
+                        (0, 0),
+                        (sum, item) => {
+                          let (id, height) = item;
+                          let (_prevId, sumHeight) = sum;
+
+                          sumHeight > element->scrollTop->int_of_float
+                          + element->Webapi.Dom.HtmlElement.clientHeight
+                            ? sum : (id, height + sumHeight);
+                        },
+                      );
+
+                  let (id, _item) = endIndex;
+                  id;
+                });
+              },
               element,
             )
           )
@@ -117,18 +138,47 @@ let make =
 
   React.useEffect1(() => None, [||]);
 
+  let startPadding =
+    heightMap
+    ->convertToSortedArray
+    ->Belt.Array.slice(~len=startIndex, ~offset=0)
+    ->Belt.Array.reduce(
+        0,
+        (sum, item) => {
+          let (_id, height) = item;
+
+          sum + height;
+        },
+      );
+
+  let endPadding =
+    heightMap
+    ->convertToSortedArray
+    ->Belt.Array.slice(
+        ~len=Belt.Array.length(data) - endIndex,
+        ~offset=endIndex,
+      )
+    ->Belt.Array.reduce(
+        0,
+        (sum, item) => {
+          let (_id, height) = item;
+
+          sum + height;
+        },
+      );
+
   <React.Fragment>
     <div>
       <div
         className=Css.(
           style([
-            paddingTop(px(startIndex * 200)),
-            paddingBottom(px((Belt.Array.length(data) - endIndex) * 200)),
+            paddingTop(px(startPadding)),
+            paddingBottom(px(endPadding)),
           ])
         )>
         Belt.Array.(
           data
-          ->slice(startIndex, endIndex - startIndex)
+          ->slice(~offset=startIndex, ~len=endIndex - startIndex)
           ->map(item => (renderItem(item), identity(item)))
           ->map(itemTuple => {
               let (element, id) = itemTuple;
@@ -162,11 +212,4 @@ let make =
       </div>
     </div>
   </React.Fragment>;
-  // </button>
-  //   {ReasonReact.string("Trigger rerender")}
-  //   onClick={_e => setStartIndex(prevIndex => prevIndex + 1)}>
-  //   )
-  //     style([display(block), marginLeft(auto), marginRight(auto)])
-  //   className=Css.(
-  // <button
 };
