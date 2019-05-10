@@ -11,7 +11,7 @@ function randomHeight(x) {
   return x * 100 + 200;
 }
 
-var data = Belt_Array.map(Belt_Array.range(0, 25), (function (id) {
+var data = Belt_Array.map(Belt_Array.range(0, 24), (function (id) {
         return /* record */[
                 /* id */id,
                 /* heightProp */randomHeight(Math.random()) | 0,

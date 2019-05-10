@@ -16,23 +16,24 @@ function scrollTop(prim) {
 }
 
 function VirtualizedList(Props) {
-  Props.bufferCount;
-  var match = Props.defaultHeight;
-  var defaultHeight = match !== undefined ? match : 200;
+  var match = Props.bufferCount;
+  var bufferCount = match !== undefined ? match : 5;
+  var match$1 = Props.defaultHeight;
+  var defaultHeight = match$1 !== undefined ? match$1 : 200;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match$1 = React.useState((function () {
+  var match$2 = React.useState((function () {
           return 0;
         }));
-  var setStartIndex = match$1[1];
-  var startIndex = match$1[0];
-  var match$2 = React.useState((function () {
+  var setStartIndex = match$2[1];
+  var startIndex = match$2[0];
+  var match$3 = React.useState((function () {
           return 10;
         }));
-  var setEndIndex = match$2[1];
-  var endIndex = match$2[0];
+  var setEndIndex = match$3[1];
+  var endIndex = match$3[0];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(Belt_HashMapInt.make(100));
   var sortByKey = function (a, b) {
@@ -71,38 +72,52 @@ function VirtualizedList(Props) {
                     })), (function (element) {
                   element.addEventListener("scroll", (function (_e) {
                           Curry._1(setStartIndex, (function (_prev) {
-                                  return Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
-                                                0,
-                                                0
-                                              ], (function (sum, item) {
-                                                  var sumHeight = sum[1];
-                                                  var match = sumHeight > (element.scrollTop | 0);
-                                                  if (match) {
-                                                    return sum;
-                                                  } else {
-                                                    return /* tuple */[
-                                                            item[0],
-                                                            item[1] + sumHeight | 0
-                                                          ];
-                                                  }
-                                                }))[0];
+                                  var startItem = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
+                                        0,
+                                        0
+                                      ], (function (sum, item) {
+                                          var sumHeight = sum[1];
+                                          var match = sumHeight > (element.scrollTop | 0);
+                                          if (match) {
+                                            return sum;
+                                          } else {
+                                            return /* tuple */[
+                                                    item[0],
+                                                    item[1] + sumHeight | 0
+                                                  ];
+                                          }
+                                        }));
+                                  var id = startItem[0];
+                                  var match = (id - bufferCount | 0) < 0;
+                                  if (match) {
+                                    return 0;
+                                  } else {
+                                    return id - bufferCount | 0;
+                                  }
                                 }));
                           return Curry._1(setEndIndex, (function (_prev) {
-                                        return Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
-                                                      0,
-                                                      0
-                                                    ], (function (sum, item) {
-                                                        var sumHeight = sum[1];
-                                                        var match = sumHeight > ((element.scrollTop | 0) + element.clientHeight | 0);
-                                                        if (match) {
-                                                          return sum;
-                                                        } else {
-                                                          return /* tuple */[
-                                                                  item[0],
-                                                                  item[1] + sumHeight | 0
-                                                                ];
-                                                        }
-                                                      }))[0];
+                                        var endIndex = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
+                                              0,
+                                              0
+                                            ], (function (sum, item) {
+                                                var sumHeight = sum[1];
+                                                var match = sumHeight > ((element.scrollTop | 0) + element.clientHeight | 0);
+                                                if (match) {
+                                                  return sum;
+                                                } else {
+                                                  return /* tuple */[
+                                                          item[0],
+                                                          item[1] + sumHeight | 0
+                                                        ];
+                                                }
+                                              }));
+                                        var id = endIndex[0];
+                                        var match = (id + bufferCount | 0) > data.length;
+                                        if (match) {
+                                          return data.length;
+                                        } else {
+                                          return id + bufferCount | 0;
+                                        }
                                       }));
                         }));
                   return /* () */0;

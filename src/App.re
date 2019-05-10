@@ -12,7 +12,7 @@ let randomHeight = x => x *. 100. +. 200.;
 
 let data =
   Belt.Array.(
-    range(0, 25)
+    range(0, 24)
     ->map(id =>
         {
           id,

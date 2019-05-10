@@ -85,7 +85,8 @@ let make =
                       );
 
                   let (id, _item) = startItem;
-                  id;
+
+                  id - bufferCount < 0 ? 0 : id - bufferCount;
                 });
 
                 setEndIndex(_prev => {
@@ -105,7 +106,9 @@ let make =
                       );
 
                   let (id, _item) = endIndex;
-                  id;
+
+                  id + bufferCount > data->Belt.Array.length
+                    ? data->Belt.Array.length : id + bufferCount;
                 });
               },
               element,
