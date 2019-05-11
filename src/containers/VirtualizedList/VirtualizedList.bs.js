@@ -15,9 +15,15 @@ function scrollTop(prim) {
   return prim.scrollTop;
 }
 
+function log(prim) {
+  console.log(prim);
+  return /* () */0;
+}
+
 function VirtualizedList(Props) {
   var match = Props.bufferCount;
   var bufferCount = match !== undefined ? match : 5;
+  var onDestroy = Props.onDestroy;
   var match$1 = Props.defaultHeight;
   var defaultHeight = match$1 !== undefined ? match$1 : 200;
   var data = Props.data;
@@ -25,7 +31,7 @@ function VirtualizedList(Props) {
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
   var match$2 = React.useState((function () {
-          return 0;
+          return -1;
         }));
   var setStartIndex = match$2[1];
   var startIndex = match$2[0];
@@ -66,76 +72,89 @@ function VirtualizedList(Props) {
                                   }));
                     })), sortByKey);
   };
+  var element = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+          return prim;
+        }));
   React.useEffect((function () {
-          Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-                      return prim;
-                    })), (function (element) {
-                  element.addEventListener("scroll", (function (_e) {
-                          Curry._1(setStartIndex, (function (_prev) {
-                                  var startItem = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
-                                        0,
-                                        0
-                                      ], (function (sum, item) {
-                                          var sumHeight = sum[1];
-                                          var match = sumHeight > (element.scrollTop | 0);
-                                          if (match) {
-                                            return sum;
-                                          } else {
-                                            return /* tuple */[
-                                                    item[0],
-                                                    item[1] + sumHeight | 0
-                                                  ];
-                                          }
-                                        }));
-                                  var id = startItem[0];
-                                  var match = (id - bufferCount | 0) < 0;
-                                  if (match) {
-                                    return 0;
-                                  } else {
-                                    return id - bufferCount | 0;
-                                  }
-                                }));
-                          return Curry._1(setEndIndex, (function (_prev) {
-                                        var endIndex = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
-                                              0,
-                                              0
-                                            ], (function (sum, item) {
-                                                var sumHeight = sum[1];
-                                                var match = sumHeight > ((element.scrollTop | 0) + element.clientHeight | 0);
-                                                if (match) {
-                                                  return sum;
-                                                } else {
-                                                  return /* tuple */[
-                                                          item[0],
-                                                          item[1] + sumHeight | 0
-                                                        ];
-                                                }
-                                              }));
-                                        var id = endIndex[0];
-                                        var match = (id + bufferCount | 0) > data.length;
-                                        if (match) {
-                                          return data.length;
-                                        } else {
-                                          return id + bufferCount | 0;
-                                        }
-                                      }));
-                        }));
-                  return /* () */0;
-                }));
-          return (function (param) {
-                    Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-                                return prim;
-                              })), (function (element) {
-                            element.removeEventListener("scroll", (function (_e) {
-                                    return /* () */0;
-                                  }));
-                            return /* () */0;
-                          }));
-                    return /* () */0;
-                  });
-        }), /* array */[]);
-  React.useEffect((function () {
+          setTimeout((function (param) {
+                  return Curry._1(setStartIndex, (function (param) {
+                                return 0;
+                              }));
+                }), 1);
           return undefined;
+        }), /* array */[]);
+  var handleScroll = function (_e) {
+    if (element !== undefined) {
+      var element$1 = Caml_option.valFromOption(element);
+      Curry._1(setStartIndex, (function (_prev) {
+              var startItem = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
+                    0,
+                    0
+                  ], (function (sum, item) {
+                      var sumHeight = sum[1];
+                      var match = sumHeight > (element$1.scrollTop | 0);
+                      if (match) {
+                        return sum;
+                      } else {
+                        return /* tuple */[
+                                item[0],
+                                item[1] + sumHeight | 0
+                              ];
+                      }
+                    }));
+              var id = startItem[0];
+              var match = (id - bufferCount | 0) < 0;
+              if (match) {
+                return 0;
+              } else {
+                return id - bufferCount | 0;
+              }
+            }));
+      return Curry._1(setEndIndex, (function (_prev) {
+                    var endIndex = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
+                          0,
+                          0
+                        ], (function (sum, item) {
+                            var sumHeight = sum[1];
+                            var match = sumHeight > ((element$1.scrollTop | 0) + element$1.clientHeight | 0);
+                            if (match) {
+                              return sum;
+                            } else {
+                              return /* tuple */[
+                                      item[0],
+                                      item[1] + sumHeight | 0
+                                    ];
+                            }
+                          }));
+                    var id = endIndex[0];
+                    var match = (id + bufferCount | 0) > data.length;
+                    if (match) {
+                      return data.length;
+                    } else {
+                      return id + bufferCount | 0;
+                    }
+                  }));
+    } else {
+      return /* () */0;
+    }
+  };
+  React.useEffect((function () {
+          if (element !== undefined) {
+            Caml_option.valFromOption(element).addEventListener("scroll", handleScroll);
+          }
+          return (function (param) {
+                    if (element !== undefined) {
+                      Caml_option.valFromOption(element).removeEventListener("scroll", handleScroll);
+                      return /* () */0;
+                    } else {
+                      return /* () */0;
+                    }
+                  });
+        }), /* array */[element]);
+  React.useEffect((function () {
+          return (function (param) {
+                    return Curry._2(onDestroy, 0, heightMap.current);
+                  });
         }), /* array */[]);
   var startPadding = Belt_Array.reduce(Belt_Array.slice(convertToSortedArray(heightMap), 0, startIndex), 0, (function (sum, item) {
           return sum + item[1] | 0;
@@ -176,5 +195,6 @@ function VirtualizedList(Props) {
 var make = VirtualizedList;
 
 exports.scrollTop = scrollTop;
+exports.log = log;
 exports.make = make;
 /* Css Not a pure module */

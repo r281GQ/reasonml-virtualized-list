@@ -1,5 +1,9 @@
 type keyProps = {. ref: string};
 
+type id;
+
+[@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
+
 type data;
 
 type rectangle = {
@@ -9,17 +13,21 @@ type rectangle = {
 
 let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
+let log = Js.log;
+
 [@react.component]
 let make =
     (
       ~bufferCount=5,
+      ~onDestroy:
+         (~scrollPosition: int, ~heightMap: Belt.HashMap.Int.t(int)) => unit=?,
       ~defaultHeight=200,
       ~data: array('data),
       ~identity: 'data => int,
       ~viewPortRef,
       ~renderItem: 'data => React.element,
     ) => {
-  let (startIndex, setStartIndex) = React.useState(() => 0);
+  let (startIndex, setStartIndex) = React.useState(() => (-1));
   let (endIndex, setEndIndex) = React.useState(() => 10);
 
   let refMap = React.useRef(Belt.HashMap.Int.make(100));
@@ -59,87 +67,108 @@ let make =
     ->Belt.SortArray.stableSortBy(sortByKey);
   };
 
+  let element =
+    viewPortRef
+    ->React.Ref.current
+    ->Js.Nullable.toOption
+    ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement);
+
   React.useEffect1(
     () => {
-      Belt.Option.(
-        viewPortRef
-        ->React.Ref.current
-        ->Js.Nullable.toOption
-        ->map(Webapi.Dom.Element.unsafeAsHtmlElement)
-        ->map(element =>
-            Webapi.Dom.HtmlElement.addEventListener(
-              "scroll",
-              _e => {
-                setStartIndex(_prev => {
-                  let startItem =
-                    convertToSortedArray(heightMap)
-                    ->Belt.Array.reduce(
-                        (0, 0),
-                        (sum, item) => {
-                          let (id, height) = item;
-                          let (_prevId, sumHeight) = sum;
+      setTimeout(() => setStartIndex(_ => 0), 1)->ignore;
 
-                          sumHeight > int_of_float(scrollTop(element))
-                            ? sum : (id, height + sumHeight);
-                        },
-                      );
-
-                  let (id, _item) = startItem;
-
-                  id - bufferCount < 0 ? 0 : id - bufferCount;
-                });
-
-                setEndIndex(_prev => {
-                  let endIndex =
-                    heightMap
-                    ->convertToSortedArray
-                    ->Belt.Array.reduce(
-                        (0, 0),
-                        (sum, item) => {
-                          let (id, height) = item;
-                          let (_prevId, sumHeight) = sum;
-
-                          sumHeight > element->scrollTop->int_of_float
-                          + element->Webapi.Dom.HtmlElement.clientHeight
-                            ? sum : (id, height + sumHeight);
-                        },
-                      );
-
-                  let (id, _item) = endIndex;
-
-                  id + bufferCount > data->Belt.Array.length
-                    ? data->Belt.Array.length : id + bufferCount;
-                });
-              },
-              element,
-            )
-          )
-      );
-
-      Some(
-        () => {
-          Belt.Option.(
-            viewPortRef
-            ->React.Ref.current
-            ->Js.Nullable.toOption
-            ->map(Webapi.Dom.Element.unsafeAsHtmlElement)
-            ->map(element =>
-                Webapi.Dom.HtmlElement.removeEventListener(
-                  "scroll",
-                  _e => (),
-                  element,
-                )
-              )
-          );
-
-          ();
-        },
-      );
+      None;
     },
     [||],
   );
 
-  React.useEffect1(() => None, [||]);
+  let handleScroll = _e => {
+    switch (element) {
+    | Some(element) =>
+      setStartIndex(_prev => {
+        let startItem =
+          convertToSortedArray(heightMap)
+          ->Belt.Array.reduce(
+              (0, 0),
+              (sum, item) => {
+                let (id, height) = item;
+                let (_prevId, sumHeight) = sum;
+
+                sumHeight > int_of_float(scrollTop(element))
+                  ? sum : (id, height + sumHeight);
+              },
+            );
+
+        let (id, _item) = startItem;
+
+        id - bufferCount < 0 ? 0 : id - bufferCount;
+      });
+
+      setEndIndex(_prev => {
+        let endIndex =
+          heightMap
+          ->convertToSortedArray
+          ->Belt.Array.reduce(
+              (0, 0),
+              (sum, item) => {
+                let (id, height) = item;
+                let (_prevId, sumHeight) = sum;
+
+                sumHeight > element->scrollTop->int_of_float
+                + element->Webapi.Dom.HtmlElement.clientHeight
+                  ? sum : (id, height + sumHeight);
+              },
+            );
+
+        let (id, _item) = endIndex;
+
+        id + bufferCount > data->Belt.Array.length
+          ? data->Belt.Array.length : id + bufferCount;
+      });
+
+    | None => ()
+    };
+  };
+
+  React.useEffect1(
+    () => {
+      switch (element) {
+      | Some(element) =>
+        Webapi.Dom.HtmlElement.addEventListener(
+          "scroll",
+          handleScroll,
+          element,
+        )
+      | None => ()
+      };
+
+      Some(
+        () =>
+          switch (element) {
+          | Some(element) =>
+            Webapi.Dom.HtmlElement.removeEventListener(
+              "scroll",
+              handleScroll,
+              element,
+            )
+          | None => ()
+          },
+      );
+    },
+    [|element|],
+  );
+
+  React.useEffect1(
+    () =>
+      Some(
+        () =>
+          onDestroy(
+            ~scrollPosition=0,
+            ~heightMap=heightMap->React.Ref.current,
+          ),
+      ),
+    [||],
+  );
 
   let startPadding =
     heightMap
