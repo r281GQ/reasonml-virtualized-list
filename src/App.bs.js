@@ -41,6 +41,7 @@ function App$List(Props) {
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
                   onDestroy: (function (scrollPosition, heightMap) {
                       console.log(scrollPosition);
+                      console.log(heightMap);
                       Curry._1(setScrollPosition, (function (param) {
                               return scrollPosition;
                             }));

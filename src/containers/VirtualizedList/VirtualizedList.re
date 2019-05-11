@@ -15,10 +15,21 @@ let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
 let log = Js.log;
 
+type position = {
+  scrollPosition: int,
+  heightMap: Belt.HashMap.Int.t(int),
+};
+
+let defaultPositionValue = {
+  scrollPosition: 1000,
+  heightMap: Belt.HashMap.Int.make(100),
+};
+
 [@react.component]
 let make =
     (
-      ~bufferCount=5,
+      ~bufferCount: int=5,
+      ~defaultPosition: position=defaultPositionValue,
       ~onDestroy:
          (~scrollPosition: int, ~heightMap: Belt.HashMap.Int.t(int)) => unit=?,
       ~defaultHeight=200,
@@ -28,11 +39,14 @@ let make =
       ~renderItem: 'data => React.element,
     ) => {
   let (startIndex, setStartIndex) = React.useState(() => (-1));
+
   let (endIndex, setEndIndex) = React.useState(() => 10);
 
   let refMap = React.useRef(Belt.HashMap.Int.make(100));
 
-  let heightMap = React.useRef(Belt.HashMap.Int.make(100));
+  let heightMap = React.useRef(defaultPosition.heightMap);
+
+  let scrollTopPosition = React.useRef(0);
 
   let sortByKey = (a, b) => {
     let (id_a, _item_a) = a;
@@ -75,7 +89,25 @@ let make =
 
   React.useEffect1(
     () => {
-      setTimeout(() => setStartIndex(_ => 0), 1)->ignore;
+      setTimeout(
+        () => {
+          setStartIndex(_ => 0);
+
+          let setScrollTop =
+            viewPortRef
+            ->React.Ref.current
+            ->Js.Nullable.toOption
+            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
+
+          switch (setScrollTop) {
+          | Some(fn) => defaultPositionValue.scrollPosition->float_of_int->fn
+          | None => ()
+          };
+        },
+        1,
+      )
+      ->ignore;
 
       None;
     },
@@ -103,6 +135,10 @@ let make =
 
         id - bufferCount < 0 ? 0 : id - bufferCount;
       });
+
+      scrollTopPosition->React.Ref.setCurrent(
+        element->scrollTop->int_of_float,
+      );
 
       setEndIndex(_prev => {
         let endIndex =
@@ -163,7 +199,7 @@ let make =
       Some(
         () =>
           onDestroy(
-            ~scrollPosition=0,
+            ~scrollPosition=scrollTopPosition->React.Ref.current,
             ~heightMap=heightMap->React.Ref.current,
           ),
       ),

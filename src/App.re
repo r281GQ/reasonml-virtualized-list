@@ -34,6 +34,7 @@ module List = {
         viewPortRef=testRef
         onDestroy={(~scrollPosition, ~heightMap) => {
           Js.log(scrollPosition);
+          Js.log(heightMap);
 
           setScrollPosition(_ => scrollPosition);
           setHeightMap(_ => heightMap);
