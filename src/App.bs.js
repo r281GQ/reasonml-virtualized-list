@@ -2,8 +2,12 @@
 'use strict';
 
 var Css = require("bs-css/src/Css.js");
+var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
+var Belt_List = require("bs-platform/lib/js/belt_List.js");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
+var Belt_HashMapInt = require("bs-platform/lib/js/belt_HashMapInt.js");
+var ReasonReactRouter = require("reason-react/src/ReasonReactRouter.js");
 var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
 var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
 
@@ -19,7 +23,11 @@ var data = Belt_Array.map(Belt_Array.range(0, 24), (function (id) {
               ];
       }));
 
-function App(Props) {
+function App$List(Props) {
+  Props.scrollPosition;
+  var setScrollPosition = Props.setScrollPosition;
+  Props.heightMap;
+  var setHeightMap = Props.setHeightMap;
   var testRef = React.useRef(null);
   return React.createElement("div", {
               ref: testRef,
@@ -31,6 +39,15 @@ function App(Props) {
                     ]
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
+                  onDestroy: (function (scrollPosition, heightMap) {
+                      console.log(scrollPosition);
+                      Curry._1(setScrollPosition, (function (param) {
+                              return scrollPosition;
+                            }));
+                      return Curry._1(setHeightMap, (function (param) {
+                                    return heightMap;
+                                  }));
+                    }),
                   data: data,
                   identity: (function (data) {
                       return data[/* id */0];
@@ -46,6 +63,59 @@ function App(Props) {
                 }));
 }
 
+var List = /* module */[/* make */App$List];
+
+function App$Header(Props) {
+  var tempRoute = Props.tempRoute;
+  var changeTempRoute = Props.changeTempRoute;
+  if (tempRoute) {
+    return React.createElement("div", undefined, React.createElement("button", {
+                    onClick: (function (_e) {
+                        return Curry._1(changeTempRoute, /* Home */0);
+                      })
+                  }, "To list"));
+  } else {
+    return React.createElement("div", undefined, React.createElement("button", {
+                    onClick: (function (_e) {
+                        return Curry._1(changeTempRoute, /* Other */1);
+                      })
+                  }, "To other route"));
+  }
+}
+
+var Header = /* module */[/* make */App$Header];
+
+function App(Props) {
+  var match = ReasonReactRouter.useUrl(undefined, /* () */0);
+  var match$1 = React.useState((function () {
+          return /* Home */0;
+        }));
+  var changeTempRoute = match$1[1];
+  var tempRoute = match$1[0];
+  var match$2 = React.useState((function () {
+          return 0;
+        }));
+  var match$3 = React.useState((function () {
+          return Belt_HashMapInt.make(1);
+        }));
+  Belt_List.head(match[/* path */0]);
+  return React.createElement(React.Fragment, {
+              children: null
+            }, React.createElement(App$Header, {
+                  tempRoute: tempRoute,
+                  changeTempRoute: (function (route) {
+                      return Curry._1(changeTempRoute, (function (param) {
+                                    return route;
+                                  }));
+                    })
+                }), tempRoute ? React.createElement("div", undefined, "Other route!") : React.createElement(App$List, {
+                    scrollPosition: match$2[0],
+                    setScrollPosition: match$2[1],
+                    heightMap: match$3[0],
+                    setHeightMap: match$3[1]
+                  }));
+}
+
 var unit = /* () */0;
 
 var make = App;
@@ -53,5 +123,7 @@ var make = App;
 exports.unit = unit;
 exports.randomHeight = randomHeight;
 exports.data = data;
+exports.List = List;
+exports.Header = Header;
 exports.make = make;
 /* data Not a pure module */
