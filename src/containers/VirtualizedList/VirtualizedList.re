@@ -3,6 +3,7 @@ type keyProps = {. ref: string};
 type id;
 
 [@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
+[@bs.val] external clearTimeout: id => unit = "clearTimeout";
 
 type data;
 
@@ -21,7 +22,7 @@ type position = {
 };
 
 let defaultPositionValue = {
-  scrollPosition: 1000,
+  scrollPosition: 15000,
   heightMap: Belt.HashMap.Int.make(100),
 };
 
@@ -87,33 +88,6 @@ let make =
     ->Js.Nullable.toOption
     ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement);
 
-  React.useEffect1(
-    () => {
-      setTimeout(
-        () => {
-          setStartIndex(_ => 0);
-
-          let setScrollTop =
-            viewPortRef
-            ->React.Ref.current
-            ->Js.Nullable.toOption
-            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-            ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
-
-          switch (setScrollTop) {
-          | Some(fn) => defaultPositionValue.scrollPosition->float_of_int->fn
-          | None => ()
-          };
-        },
-        1,
-      )
-      ->ignore;
-
-      None;
-    },
-    [||],
-  );
-
   let handleScroll = _e => {
     switch (element) {
     | Some(element) =>
@@ -165,6 +139,40 @@ let make =
     | None => ()
     };
   };
+
+  React.useEffect1(
+    () => {
+      setTimeout(() => setStartIndex(_ => 0), 1)->ignore;
+
+      None;
+    },
+    [||],
+  );
+
+  React.useEffect1(
+    () => {
+      setTimeout(
+        () => {
+          let setScrollTop =
+            viewPortRef
+            ->React.Ref.current
+            ->Js.Nullable.toOption
+            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
+
+          switch (setScrollTop) {
+          | Some(fn) => defaultPositionValue.scrollPosition->float_of_int->fn
+          | None => ()
+          };
+        },
+        100,
+      )
+      ->ignore;
+
+      None;
+    },
+    [||],
+  );
 
   React.useEffect1(
     () => {
@@ -235,6 +243,9 @@ let make =
         },
       );
 
+  startIndex->log;
+  endIndex->log;
+
   <React.Fragment>
     <div>
       <div
@@ -250,6 +261,8 @@ let make =
           ->map(item => (renderItem(item), identity(item)))
           ->map(itemTuple => {
               let (element, id) = itemTuple;
+
+              id->log;
 
               ReasonReact.cloneElement(
                 element,

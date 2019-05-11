@@ -23,7 +23,7 @@ function log(prim) {
 var defaultPositionValue_001 = /* heightMap */Belt_HashMapInt.make(100);
 
 var defaultPositionValue = /* record */[
-  /* scrollPosition */1000,
+  /* scrollPosition */15000,
   defaultPositionValue_001
 ];
 
@@ -85,25 +85,6 @@ function VirtualizedList(Props) {
   var element = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
           return prim;
         }));
-  React.useEffect((function () {
-          setTimeout((function (param) {
-                  Curry._1(setStartIndex, (function (param) {
-                          return 0;
-                        }));
-                  var setScrollTop = Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-                              return prim;
-                            })), (function (prim, prim$1) {
-                          prim.scrollTop = prim$1;
-                          return /* () */0;
-                        }));
-                  if (setScrollTop !== undefined) {
-                    return Curry._1(setScrollTop, 1000);
-                  } else {
-                    return /* () */0;
-                  }
-                }), 1);
-          return undefined;
-        }), /* array */[]);
   var handleScroll = function (_e) {
     if (element !== undefined) {
       var element$1 = Caml_option.valFromOption(element);
@@ -161,6 +142,30 @@ function VirtualizedList(Props) {
     }
   };
   React.useEffect((function () {
+          setTimeout((function (param) {
+                  return Curry._1(setStartIndex, (function (param) {
+                                return 0;
+                              }));
+                }), 1);
+          return undefined;
+        }), /* array */[]);
+  React.useEffect((function () {
+          setTimeout((function (param) {
+                  var setScrollTop = Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+                              return prim;
+                            })), (function (prim, prim$1) {
+                          prim.scrollTop = prim$1;
+                          return /* () */0;
+                        }));
+                  if (setScrollTop !== undefined) {
+                    return Curry._1(setScrollTop, 15000);
+                  } else {
+                    return /* () */0;
+                  }
+                }), 100);
+          return undefined;
+        }), /* array */[]);
+  React.useEffect((function () {
           if (element !== undefined) {
             Caml_option.valFromOption(element).addEventListener("scroll", handleScroll);
           }
@@ -184,6 +189,8 @@ function VirtualizedList(Props) {
   var endPadding = Belt_Array.reduce(Belt_Array.slice(convertToSortedArray(heightMap), endIndex, data.length - endIndex | 0), 0, (function (sum, item) {
           return sum + item[1] | 0;
         }));
+  console.log(startIndex);
+  console.log(endIndex);
   return React.createElement(React.Fragment, {
               children: React.createElement("div", undefined, React.createElement("div", {
                         className: Css.style(/* :: */[
@@ -200,6 +207,7 @@ function VirtualizedList(Props) {
                                         ];
                                 })), (function (itemTuple) {
                               var id = itemTuple[1];
+                              console.log(id);
                               return React.cloneElement(itemTuple[0], {
                                           ref: (function (elementRef) {
                                               Belt_HashMapInt.set(refMap.current, id, elementRef);

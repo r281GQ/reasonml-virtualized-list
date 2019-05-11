@@ -8,11 +8,11 @@ type dataItemType = {
 
 let unit = ();
 
-let randomHeight = x => x *. 100. +. 200.;
+let randomHeight = x => x *. 150. +. 200.;
 
 let data =
   Belt.Array.(
-    range(0, 24)
+    range(0, 99)
     ->map(id =>
         {
           id,
@@ -29,7 +29,7 @@ module List = {
 
     <div
       ref={testRef->ReactDOMRe.Ref.domRef}
-      className=Css.(style([maxHeight(vh(100.)), overflowY(`scroll)]))>
+      className=Css.(style([maxHeight(vh(90.)), overflowY(`scroll)]))>
       <VirtualizedList
         viewPortRef=testRef
         onDestroy={(~scrollPosition, ~heightMap) => {

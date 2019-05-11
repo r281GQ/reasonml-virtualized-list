@@ -12,10 +12,10 @@ var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
 var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
 
 function randomHeight(x) {
-  return x * 100 + 200;
+  return x * 150 + 200;
 }
 
-var data = Belt_Array.map(Belt_Array.range(0, 24), (function (id) {
+var data = Belt_Array.map(Belt_Array.range(0, 99), (function (id) {
         return /* record */[
                 /* id */id,
                 /* heightProp */randomHeight(Math.random()) | 0,
@@ -32,7 +32,7 @@ function App$List(Props) {
   return React.createElement("div", {
               ref: testRef,
               className: Css.style(/* :: */[
-                    Css.maxHeight(Css.vh(100)),
+                    Css.maxHeight(Css.vh(90)),
                     /* :: */[
                       Css.overflowY(/* scroll */-949692403),
                       /* [] */0
