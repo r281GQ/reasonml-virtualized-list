@@ -52,6 +52,12 @@ function VirtualizedList(Props) {
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(defaultPosition[/* heightMap */1]);
   var scrollTopPosition = React.useRef(0);
+  var prev = React.useRef(/* record */[
+        /* startIndex */0,
+        /* endIndex */0
+      ]);
+  var prim = prev.current;
+  console.log(prim);
   var sortByKey = function (a, b) {
     var id_b = b[0];
     var id_a = a[0];
@@ -89,6 +95,11 @@ function VirtualizedList(Props) {
     if (element !== undefined) {
       var element$1 = Caml_option.valFromOption(element);
       Curry._1(setStartIndex, (function (_prev) {
+              var init = prev.current;
+              prev.current = /* record */[
+                /* startIndex */_prev,
+                /* endIndex */init[/* endIndex */1]
+              ];
               var startItem = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
                     0,
                     0
@@ -207,7 +218,6 @@ function VirtualizedList(Props) {
                                         ];
                                 })), (function (itemTuple) {
                               var id = itemTuple[1];
-                              console.log(id);
                               return React.cloneElement(itemTuple[0], {
                                           ref: (function (elementRef) {
                                               Belt_HashMapInt.set(refMap.current, id, elementRef);

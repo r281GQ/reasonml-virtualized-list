@@ -21,6 +21,11 @@ type position = {
   heightMap: Belt.HashMap.Int.t(int),
 };
 
+type previousState = {
+  startIndex: int,
+  endIndex: int,
+};
+
 let defaultPositionValue = {
   scrollPosition: 15000,
   heightMap: Belt.HashMap.Int.make(100),
@@ -48,6 +53,10 @@ let make =
   let heightMap = React.useRef(defaultPosition.heightMap);
 
   let scrollTopPosition = React.useRef(0);
+
+  let prev = React.useRef({startIndex: 0, endIndex: 0});
+
+  prev->React.Ref.current->log;
 
   let sortByKey = (a, b) => {
     let (id_a, _item_a) = a;
@@ -91,7 +100,13 @@ let make =
   let handleScroll = _e => {
     switch (element) {
     | Some(element) =>
+      // persist the current position as the prev
+
       setStartIndex(_prev => {
+        React.Ref.setCurrent(
+          prev,
+          {...React.Ref.current(prev), startIndex: _prev},
+        );
         let startItem =
           convertToSortedArray(heightMap)
           ->Belt.Array.reduce(
@@ -262,7 +277,7 @@ let make =
           ->map(itemTuple => {
               let (element, id) = itemTuple;
 
-              id->log;
+              // id->log;
 
               ReasonReact.cloneElement(
                 element,
