@@ -2,20 +2,49 @@ type keyProps = {. ref: string};
 
 type id;
 
-[@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
-[@bs.val] external clearTimeout: id => unit = "clearTimeout";
-
 type data;
 
 type rectangle = {
   top: int,
-  bottom: int,
+  height: int,
 };
+
+[@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
+[@bs.val] external clearTimeout: id => unit = "clearTimeout";
 
 let foldOnHeight = (sum: int, item: (int, int)) => {
   let (_id, height) = item;
 
   sum + height;
+};
+
+let recsHeight =
+    (
+      data: array('data),
+      identity: 'data => int,
+      rectangles: Belt.HashMap.Int.t(rectangle),
+    )
+    : int =>
+  Belt.(
+    data
+    ->Array.get(data->Array.length - 1)
+    ->Option.map(identity)
+    ->Option.flatMap(id => rectangles->HashMap.Int.get(id))
+    ->Option.mapWithDefault(0, item => item.height + item.top)
+  );
+
+let heightDelta = (~data, ~identity, ~rectangles, ~previousRectangles) =>
+  recsHeight(data, identity, previousRectangles)
+  - recsHeight(data, identity, rectangles);
+
+let calculateHeight = (elementRef, heightMap, id) => {
+  elementRef
+  ->Js.Nullable.toOption
+  ->Belt.Option.map(Webapi.Dom.HtmlElement.clientHeight)
+  ->Belt.Option.map(height =>
+      Belt.HashMap.Int.set(React.Ref.current(heightMap), id, height)
+    )
+  ->ignore;
 };
 
 let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
@@ -28,6 +57,7 @@ type position = {
 };
 
 type snapShot = {
+  rectangles: Belt.HashMap.Int.t(rectangle),
   startIndex: int,
   endIndex: int,
   scrollTop: int,
@@ -60,17 +90,22 @@ let make =
 
   let heightMap = React.useRef(defaultPosition.heightMap);
 
+  let recMap = React.useRef(Belt.HashMap.Int.make(100));
+
   let scrollTopPosition = React.useRef(0);
+  let viewPortRec = React.useRef({top: 0, height: 0});
+  let prevViewPortRec = React.useRef({top: 0, height: 0});
 
   let previousSnapshot =
     React.useRef({
       startIndex: 0,
       endIndex: 0,
       scrollTop: 0,
+      rectangles: Belt.HashMap.Int.make(100),
       heightMap: Belt.HashMap.Int.make(100),
     });
 
-  previousSnapshot->React.Ref.current->log;
+  //previousSnapshot->React.Ref.current->;
 
   let sortByKey = (a, b) => {
     let (id_a, _item_a) = a;
@@ -121,6 +156,16 @@ let make =
           previousSnapshot,
           {...React.Ref.current(previousSnapshot), startIndex: _prev},
         );
+
+        let viewPortReci: rectangle = {
+          height: Webapi.Dom.HtmlElement.clientHeight(element),
+          top: Webapi.Dom.HtmlElement.scrollTop(element)->int_of_float,
+        };
+
+        prevViewPortRec->React.Ref.setCurrent(viewPortRec->React.Ref.current);
+
+        viewPortRec->React.Ref.setCurrent(viewPortReci);
+
         let startItem =
           convertToSortedArray(heightMap)
           ->Belt.Array.reduce(
@@ -281,6 +326,21 @@ let make =
         },
       );
 
+  /**
+    This triggered by changing the indexes!
+
+    Things to do!
+
+    - save current rectangels to prev
+
+    - grab new heights
+
+    - calculate new rectangles
+
+    - calculate height diff if any
+
+    - if there is height diff find anchor and move scroller
+   */
   React.useEffect1(
     () => {
       open React.Ref;
@@ -289,11 +349,133 @@ let make =
       startIndex->log;
       endIndex->log;
 
+      React.Ref.setCurrent(
+        previousSnapshot,
+        {
+          ...React.Ref.current(previousSnapshot),
+          heightMap: heightMap->React.Ref.current->Belt.HashMap.Int.copy,
+          rectangles: recMap->current,
+        },
+      );
+
       let currentHeight = heightMap->current;
       // let {heightMap as prevHeights} = previousSnapshot->current;
 
       let currentVP =
         heightMap->convertToSortedArray->reduce(0, foldOnHeight);
+
+      let recs = Belt.HashMap.Int.make(100);
+
+      let foo = ref(0);
+
+      refMap
+      ->current
+      ->Belt.HashMap.Int.forEach((key, item) =>
+          calculateHeight(item, heightMap, key)
+        );
+
+      heightMap
+      ->convertToSortedArray
+      ->forEach(item => {
+          let (id, height) = item;
+
+          Belt.HashMap.Int.set(recs, id, {top: foo^, height});
+
+          foo := foo^ + height;
+        });
+
+      recMap->setCurrent(recs);
+
+      let isBetween = (target, beginning, endValue) => {
+        target >= beginning && target <= endValue;
+      };
+
+      let doesIntersectWith = (a, b) => {
+        let d = isBetween(a.top, b.top, b.top + b.height);
+        let ds = isBetween(b.top, a.top, a.top + a.height);
+
+        d || ds;
+      };
+
+      let findAnchor = () => {
+        prevViewPortRec->current->log;
+
+        let viewPortReci: rectangle = {
+          height:
+            viewPortRef
+            ->current
+            ->Js.Nullable.toOption
+            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ->Belt.Option.mapWithDefault(
+                0,
+                Webapi.Dom.HtmlElement.clientHeight,
+              ),
+          top:
+            viewPortRef
+            ->current
+            ->Js.Nullable.toOption
+            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ->Belt.Option.map(Webapi.Dom.HtmlElement.scrollTop)
+            ->Belt.Option.mapWithDefault(0, int_of_float),
+        };
+
+        viewPortRec->current->log;
+        viewPortReci->log;
+
+        let prev = previousSnapshot->current;
+
+        let both =
+          data
+          ->Belt.List.fromArray
+          ->Belt.List.filter(item => {
+              let id = item->identity;
+
+              switch (
+                prev.startIndex <= id && prev.endIndex >= id,
+                startIndex <= id && endIndex >= id,
+              ) {
+              | (true, true) => true
+              | _ => false
+              };
+            })
+          ->Belt.List.toArray;
+
+        let y = doesIntersectWith(prevViewPortRec->current);
+
+        both->log;
+
+        both
+        ->map(i =>
+            switch (recs->Belt.HashMap.Int.get(i->identity)) {
+            | Some(h) => (i->identity, h)
+            | None => (i->identity, {top: 0, height: 0})
+            }
+          )
+        ->reduce(
+            0,
+            (sum, item) => {
+              let (id, rect) = item;
+              // find the first item that is in the viewport
+              // and thean calcualte correction
+              rect->y->log;
+
+              0;
+            },
+          );
+        ();
+      };
+
+      switch (
+        heightDelta(
+          ~data,
+          ~identity,
+          ~rectangles=recMap->current,
+          ~previousRectangles=previousSnapshot->current.rectangles,
+        )
+      ) {
+      | 0 => ()
+      | _ => findAnchor()
+      };
 
       let prevVP =
         data
@@ -314,19 +496,6 @@ let make =
           })
         ->Belt.SortArray.stableSortBy(sortByKey)
         ->reduce(0, foldOnHeight);
-
-      (currentVP == prevVP)->log;
-
-      let f = () => {
-        heightMap->convertToSortedArray->log;
-        element->(
-                   Belt.Option.map(
-                     Webapi__Dom.HtmlElement.scrollBy(1000., 1000.),
-                   )
-                 );
-      };
-
-      currentVP != prevVP ? ()->f->ignore : ();
 
       None;
     },
@@ -349,8 +518,6 @@ let make =
           ->map(itemTuple => {
               let (element, id) = itemTuple;
 
-              // id->log;
-
               ReasonReact.cloneElement(
                 element,
                 ~props={
@@ -359,18 +526,7 @@ let make =
                        React.Ref.current(refMap),
                        id,
                        elementRef,
-                     )
-
-                     elementRef
-                     ->Js.Nullable.toOption
-                     ->Belt.Option.map(Webapi.Dom.HtmlElement.clientHeight)
-                     ->Belt.Option.map(height =>
-                         Belt.HashMap.Int.set(
-                           React.Ref.current(heightMap),
-                           id,
-                           height,
-                         )
-                       )},
+                     )},
                 },
                 [||],
               );
