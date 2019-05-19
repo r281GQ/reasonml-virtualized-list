@@ -11,6 +11,10 @@ var Caml_option = require("bs-platform/lib/js/caml_option.js");
 var Belt_SortArray = require("bs-platform/lib/js/belt_SortArray.js");
 var Belt_HashMapInt = require("bs-platform/lib/js/belt_HashMapInt.js");
 
+function foldOnHeight(sum, item) {
+  return sum + item[1] | 0;
+}
+
 function scrollTop(prim) {
   return prim.scrollTop;
 }
@@ -52,11 +56,13 @@ function VirtualizedList(Props) {
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(defaultPosition[/* heightMap */1]);
   var scrollTopPosition = React.useRef(0);
-  var prev = React.useRef(/* record */[
+  var previousSnapshot = React.useRef(/* record */[
         /* startIndex */0,
-        /* endIndex */0
+        /* endIndex */0,
+        /* scrollTop */0,
+        /* heightMap */Belt_HashMapInt.make(100)
       ]);
-  var prim = prev.current;
+  var prim = previousSnapshot.current;
   console.log(prim);
   var sortByKey = function (a, b) {
     var id_b = b[0];
@@ -95,10 +101,12 @@ function VirtualizedList(Props) {
     if (element !== undefined) {
       var element$1 = Caml_option.valFromOption(element);
       Curry._1(setStartIndex, (function (_prev) {
-              var init = prev.current;
-              prev.current = /* record */[
+              var init = previousSnapshot.current;
+              previousSnapshot.current = /* record */[
                 /* startIndex */_prev,
-                /* endIndex */init[/* endIndex */1]
+                /* endIndex */init[/* endIndex */1],
+                /* scrollTop */init[/* scrollTop */2],
+                /* heightMap */init[/* heightMap */3]
               ];
               var startItem = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
                     0,
@@ -125,6 +133,13 @@ function VirtualizedList(Props) {
             }));
       scrollTopPosition.current = element$1.scrollTop | 0;
       return Curry._1(setEndIndex, (function (_prev) {
+                    var init = previousSnapshot.current;
+                    previousSnapshot.current = /* record */[
+                      /* startIndex */init[/* startIndex */0],
+                      /* endIndex */_prev,
+                      /* scrollTop */element$1.scrollTop | 0,
+                      /* heightMap */Belt_HashMapInt.copy(heightMap.current)
+                    ];
                     var endIndex = Belt_Array.reduce(convertToSortedArray(heightMap), /* tuple */[
                           0,
                           0
@@ -200,8 +215,45 @@ function VirtualizedList(Props) {
   var endPadding = Belt_Array.reduce(Belt_Array.slice(convertToSortedArray(heightMap), endIndex, data.length - endIndex | 0), 0, (function (sum, item) {
           return sum + item[1] | 0;
         }));
-  console.log(startIndex);
-  console.log(endIndex);
+  React.useEffect((function () {
+          console.log(startIndex);
+          console.log(endIndex);
+          heightMap.current;
+          var currentVP = Belt_Array.reduce(convertToSortedArray(heightMap), 0, foldOnHeight);
+          var prevVP = Belt_Array.reduce(Belt_SortArray.stableSortBy(Belt_Array.map(Belt_Array.map(data, (function (item) {
+                              var id = Curry._1(identity, item);
+                              return /* tuple */[
+                                      id,
+                                      defaultHeight
+                                    ];
+                            })), (function (item) {
+                          var id = item[0];
+                          var u = previousSnapshot.current;
+                          return Belt_Option.mapWithDefault(Belt_HashMapInt.get(u[/* heightMap */3], id), item, (function (measuredHeight) {
+                                        return /* tuple */[
+                                                id,
+                                                measuredHeight
+                                              ];
+                                      }));
+                        })), sortByKey), 0, foldOnHeight);
+          console.log(currentVP === prevVP);
+          var f = function (param) {
+            var prim = convertToSortedArray(heightMap);
+            console.log(prim);
+            return Belt_Option.map(element, (function (param) {
+                          param.scrollBy(1000, 1000);
+                          return /* () */0;
+                        }));
+          };
+          var match = currentVP !== prevVP;
+          if (match) {
+            f(/* () */0);
+          }
+          return undefined;
+        }), /* array */[
+        startIndex,
+        endIndex
+      ]);
   return React.createElement(React.Fragment, {
               children: React.createElement("div", undefined, React.createElement("div", {
                         className: Css.style(/* :: */[
@@ -234,6 +286,7 @@ function VirtualizedList(Props) {
 
 var make = VirtualizedList;
 
+exports.foldOnHeight = foldOnHeight;
 exports.scrollTop = scrollTop;
 exports.log = log;
 exports.defaultPositionValue = defaultPositionValue;

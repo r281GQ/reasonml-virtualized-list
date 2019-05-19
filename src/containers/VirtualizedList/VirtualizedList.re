@@ -12,6 +12,12 @@ type rectangle = {
   bottom: int,
 };
 
+let foldOnHeight = (sum: int, item: (int, int)) => {
+  let (_id, height) = item;
+
+  sum + height;
+};
+
 let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
 let log = Js.log;
@@ -21,9 +27,11 @@ type position = {
   heightMap: Belt.HashMap.Int.t(int),
 };
 
-type previousState = {
+type snapShot = {
   startIndex: int,
   endIndex: int,
+  scrollTop: int,
+  heightMap: Belt.HashMap.Int.t(int),
 };
 
 let defaultPositionValue = {
@@ -54,9 +62,15 @@ let make =
 
   let scrollTopPosition = React.useRef(0);
 
-  let prev = React.useRef({startIndex: 0, endIndex: 0});
+  let previousSnapshot =
+    React.useRef({
+      startIndex: 0,
+      endIndex: 0,
+      scrollTop: 0,
+      heightMap: Belt.HashMap.Int.make(100),
+    });
 
-  prev->React.Ref.current->log;
+  previousSnapshot->React.Ref.current->log;
 
   let sortByKey = (a, b) => {
     let (id_a, _item_a) = a;
@@ -104,8 +118,8 @@ let make =
 
       setStartIndex(_prev => {
         React.Ref.setCurrent(
-          prev,
-          {...React.Ref.current(prev), startIndex: _prev},
+          previousSnapshot,
+          {...React.Ref.current(previousSnapshot), startIndex: _prev},
         );
         let startItem =
           convertToSortedArray(heightMap)
@@ -130,6 +144,15 @@ let make =
       );
 
       setEndIndex(_prev => {
+        React.Ref.setCurrent(
+          previousSnapshot,
+          {
+            ...React.Ref.current(previousSnapshot),
+            endIndex: _prev,
+            scrollTop: element->scrollTop->int_of_float,
+            heightMap: heightMap->React.Ref.current->Belt.HashMap.Int.copy,
+          },
+        );
         let endIndex =
           heightMap
           ->convertToSortedArray
@@ -258,8 +281,57 @@ let make =
         },
       );
 
-  startIndex->log;
-  endIndex->log;
+  React.useEffect1(
+    () => {
+      open React.Ref;
+      open Belt.Array;
+
+      startIndex->log;
+      endIndex->log;
+
+      let currentHeight = heightMap->current;
+      // let {heightMap as prevHeights} = previousSnapshot->current;
+
+      let currentVP =
+        heightMap->convertToSortedArray->reduce(0, foldOnHeight);
+
+      let prevVP =
+        data
+        ->Belt.Array.map(item => {
+            let id = item->identity;
+
+            (id, defaultHeight);
+          })
+        ->Belt.Array.map(item => {
+            let (id, _height) = item;
+
+            let u = previousSnapshot->current;
+            u.heightMap
+            ->Belt.HashMap.Int.get(id)
+            ->Belt.Option.mapWithDefault(item, measuredHeight =>
+                (id, measuredHeight)
+              );
+          })
+        ->Belt.SortArray.stableSortBy(sortByKey)
+        ->reduce(0, foldOnHeight);
+
+      (currentVP == prevVP)->log;
+
+      let f = () => {
+        heightMap->convertToSortedArray->log;
+        element->(
+                   Belt.Option.map(
+                     Webapi__Dom.HtmlElement.scrollBy(1000., 1000.),
+                   )
+                 );
+      };
+
+      currentVP != prevVP ? ()->f->ignore : ();
+
+      None;
+    },
+    [|startIndex, endIndex|],
+  );
 
   <React.Fragment>
     <div>
