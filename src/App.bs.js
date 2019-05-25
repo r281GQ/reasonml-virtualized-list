@@ -4,10 +4,8 @@
 var Css = require("bs-css/src/Css.js");
 var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
-var Belt_List = require("bs-platform/lib/js/belt_List.js");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 var Belt_HashMapInt = require("bs-platform/lib/js/belt_HashMapInt.js");
-var ReasonReactRouter = require("reason-react/src/ReasonReactRouter.js");
 var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
 var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
 
@@ -15,7 +13,7 @@ function randomHeight(x) {
   return x * 150 + 200;
 }
 
-var data = Belt_Array.map(Belt_Array.range(0, 99), (function (id) {
+var data = Belt_Array.map(Belt_Array.range(1, 100), (function (id) {
         return /* record */[
                 /* id */id,
                 /* heightProp */randomHeight(Math.random()) | 0,
@@ -23,7 +21,7 @@ var data = Belt_Array.map(Belt_Array.range(0, 99), (function (id) {
               ];
       }));
 
-function App$List(Props) {
+function App$VList(Props) {
   Props.scrollPosition;
   var setScrollPosition = Props.setScrollPosition;
   Props.heightMap;
@@ -40,8 +38,6 @@ function App$List(Props) {
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
                   onDestroy: (function (scrollPosition, heightMap) {
-                      console.log(scrollPosition);
-                      console.log(heightMap);
                       Curry._1(setScrollPosition, (function (param) {
                               return scrollPosition;
                             }));
@@ -64,7 +60,7 @@ function App$List(Props) {
                 }));
 }
 
-var List = /* module */[/* make */App$List];
+var VList = /* module */[/* make */App$VList];
 
 function App$Header(Props) {
   var tempRoute = Props.tempRoute;
@@ -87,19 +83,17 @@ function App$Header(Props) {
 var Header = /* module */[/* make */App$Header];
 
 function App(Props) {
-  var match = ReasonReactRouter.useUrl(undefined, /* () */0);
-  var match$1 = React.useState((function () {
+  var match = React.useState((function () {
           return /* Home */0;
         }));
-  var changeTempRoute = match$1[1];
-  var tempRoute = match$1[0];
-  var match$2 = React.useState((function () {
+  var changeTempRoute = match[1];
+  var tempRoute = match[0];
+  var match$1 = React.useState((function () {
           return 0;
         }));
-  var match$3 = React.useState((function () {
+  var match$2 = React.useState((function () {
           return Belt_HashMapInt.make(1);
         }));
-  Belt_List.head(match[/* path */0]);
   return React.createElement(React.Fragment, {
               children: null
             }, React.createElement(App$Header, {
@@ -109,11 +103,11 @@ function App(Props) {
                                     return route;
                                   }));
                     })
-                }), tempRoute ? React.createElement("div", undefined, "Other route!") : React.createElement(App$List, {
-                    scrollPosition: match$2[0],
-                    setScrollPosition: match$2[1],
-                    heightMap: match$3[0],
-                    setHeightMap: match$3[1]
+                }), tempRoute ? React.createElement("div", undefined, "Other route!") : React.createElement(App$VList, {
+                    scrollPosition: match$1[0],
+                    setScrollPosition: match$1[1],
+                    heightMap: match$2[0],
+                    setHeightMap: match$2[1]
                   }));
 }
 
@@ -124,7 +118,7 @@ var make = App;
 exports.unit = unit;
 exports.randomHeight = randomHeight;
 exports.data = data;
-exports.List = List;
+exports.VList = VList;
 exports.Header = Header;
 exports.make = make;
 /* data Not a pure module */

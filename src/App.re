@@ -12,7 +12,7 @@ let randomHeight = x => x *. 150. +. 200.;
 
 let data =
   Belt.Array.(
-    range(0, 99)
+    range(1, 100)
     ->map(id =>
         {
           id,
@@ -22,7 +22,7 @@ let data =
       )
   );
 
-module List = {
+module VList = {
   [@react.component]
   let make = (~scrollPosition, ~setScrollPosition, ~heightMap, ~setHeightMap) => {
     let testRef = React.useRef(Js.Nullable.null);
@@ -33,9 +33,6 @@ module List = {
       <VirtualizedList
         viewPortRef=testRef
         onDestroy={(~scrollPosition, ~heightMap) => {
-          Js.log(scrollPosition);
-          Js.log(heightMap);
-
           setScrollPosition(_ => scrollPosition);
           setHeightMap(_ => heightMap);
         }}
@@ -74,31 +71,12 @@ module Header = {
           {React.string("To list")}
         </button>
       </div>
-    // switch (url.path) {
-    // | []
-    // | ["list"] =>
-    //   <div>
-    //     <button onClick={_e => ReasonReactRouter.push("other")}>
-    //       {React.string("To other route")}
-    //     </button>
-    //   </div>
-    // | ["other"] =>
-    //   <div>
-    //     <button onClick={_e => ReasonReactRouter.push("list")}>
-    //       {React.string("To list")}
-    //     </button>
-    //   </div>
-    // | [a] => <div> {React.string("On route " ++ a)} </div>
-    // | _ => <div> {React.string("Nope!")} </div>
-    // };
     };
   };
 };
 
 [@react.component]
 let make = () => {
-  let {path}: ReasonReactRouter.url = ReasonReactRouter.useUrl();
-
   let (tempRoute, changeTempRoute) = React.useState(() => Home);
 
   let (scrollPosition, setScrollPosition) = React.useState(() => 0);
@@ -106,19 +84,11 @@ let make = () => {
   let (heightMap, setHeightMap) =
     React.useState(() => Belt.HashMap.Int.make(1));
 
-  let currentPath = path->Belt.List.head;
-
   <React.Fragment>
     <Header tempRoute changeTempRoute={route => changeTempRoute(_ => route)} />
-    // {switch (path) {
-    //  | []
-    //  | ["list"] =>
-    //    <List scrollPosition setScrollPosition heightMap setHeightMap />
-    //  | ["other"] => <div> "Other route!"->React.string </div>
-    //  | _ => <div> "Nope!"->React.string </div>
-    //  }}
     {switch (tempRoute) {
-     | Home => <List scrollPosition setScrollPosition heightMap setHeightMap />
+     | Home =>
+       <VList scrollPosition setScrollPosition heightMap setHeightMap />
      | Other => <div> "Other route!"->React.string </div>
      }}
   </React.Fragment>;
