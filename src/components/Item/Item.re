@@ -11,8 +11,8 @@ let make =
           display(`flex),
           flexDirection(row),
           justifyContent(center),
-          marginBottom(px(8)),
-          marginTop(px(8)),
+          // marginBottom(px(8)),
+          // marginTop(px(8)),
           backgroundColor(id mod 2 === 0 ? hex("793698") : hex("d6b4e7")),
           height(px(heightProp)),
         ])
