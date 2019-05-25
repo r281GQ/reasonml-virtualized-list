@@ -20,16 +20,10 @@ var make = React.forwardRef((function (Props, ref_) {
                     /* :: */[
                       Css.justifyContent(Css.center),
                       /* :: */[
-                        Css.marginBottom(Css.px(8)),
+                        Css.backgroundColor(match ? Css.hex("793698") : Css.hex("d6b4e7")),
                         /* :: */[
-                          Css.marginTop(Css.px(8)),
-                          /* :: */[
-                            Css.backgroundColor(match ? Css.hex("793698") : Css.hex("d6b4e7")),
-                            /* :: */[
-                              Css.height(Css.px(heightProp)),
-                              /* [] */0
-                            ]
-                          ]
+                          Css.height(Css.px(heightProp)),
+                          /* [] */0
                         ]
                       ]
                     ]
