@@ -82,7 +82,7 @@ let make = () => {
   let (scrollPosition, setScrollPosition) = React.useState(() => 0);
 
   let (heightMap, setHeightMap) =
-    React.useState(() => Belt.HashMap.Int.make(1));
+    React.useState(() => Belt.HashMap.Int.make(~hintSize=1));
 
   <React.Fragment>
     <Header tempRoute changeTempRoute={route => changeTempRoute(_ => route)} />

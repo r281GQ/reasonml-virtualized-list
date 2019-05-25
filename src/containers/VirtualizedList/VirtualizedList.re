@@ -1,49 +1,10 @@
-type keyProps = {. ref: string};
-
 type id;
-type p;
-[@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
-[@bs.val] external clearTimeout: id => unit = "clearTimeout";
-
-[@bs.val]
-external requestAnimationFrame: (unit => unit) => unit =
-  "requestAnimationFrame";
-
-let ticker = (fn: 'sd => unit) => {
-  let ticking = ref(false);
-
-  let execute = ww => {
-    requestAnimationFrame(() => {
-      fn(ww);
-      ticking := false;
-    });
-  };
-
-  r => {
-    if (! ticking^) {
-      execute(r);
-    };
-
-    ticking := true;
-  };
-};
 
 type data;
 
-type b;
-
-let throttle = fn => {
-  let inThrottle = ref(false);
-
-  let f = r =>
-    if (! inThrottle^) {
-      fn(r);
-      inThrottle := true;
-
-      setTimeout(() => inThrottle := false, 300)->ignore;
-    };
-
-  f;
+type position = {
+  scrollPosition: int,
+  heightMap: Belt.HashMap.Int.t(int),
 };
 
 type rectangle = {
@@ -51,11 +12,21 @@ type rectangle = {
   height: int,
 };
 
-let foldOnHeight = (sum: int, item: (int, int)) => {
-  let (_id, height) = item;
-
-  sum + height;
+type snapShot = {
+  rectangles: Belt.HashMap.Int.t(rectangle),
+  startIndex: int,
+  endIndex: int,
+  scrollTop: int,
+  heightMap: Belt.HashMap.Int.t(int),
 };
+
+type state = {
+  startIndex: int,
+  endIndex: int,
+};
+
+[@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
+[@bs.val] external clearTimeout: id => unit = "clearTimeout";
 
 let recsHeight =
     (
@@ -90,27 +61,23 @@ let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
 let log = Js.log;
 
-type position = {
-  scrollPosition: int,
-  heightMap: Belt.HashMap.Int.t(int),
-};
+let sortByKey = (a, b) => {
+  let (id_a, _item_a) = a;
 
-type snapShot = {
-  rectangles: Belt.HashMap.Int.t(rectangle),
-  startIndex: int,
-  endIndex: int,
-  scrollTop: int,
-  heightMap: Belt.HashMap.Int.t(int),
+  let (id_b, _item_b) = b;
+
+  switch (id_a > id_b) {
+  | true => 1
+  | false when id_a === id_b => 0
+  | _ => (-1)
+  };
 };
 
 let defaultPositionValue = {
   scrollPosition: 15000,
-  heightMap: Belt.HashMap.Int.make(100),
+  heightMap: Belt.HashMap.Int.make(~hintSize=100),
 };
-type ff = {
-  startIndex: int,
-  endIndex: int,
-};
+
 [@react.component]
 let make =
     (
@@ -124,19 +91,21 @@ let make =
       ~viewPortRef,
       ~renderItem: 'data => React.element,
     ) => {
-  let ({startIndex, endIndex}, setIndex) =
+  let ({startIndex, endIndex}: state, setIndex) =
     React.useState(() => {startIndex: (-1), endIndex: 10});
 
-  let (corr, setCorrection) = React.useState(() => 0);
+  let (_corr, setCorrection) = React.useState(() => 0);
 
-  let refMap = React.useRef(Belt.HashMap.Int.make(100));
+  let refMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
 
   let heightMap = React.useRef(defaultPosition.heightMap);
 
-  let recMap = React.useRef(Belt.HashMap.Int.make(100));
+  let recMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
 
   let scrollTopPosition = React.useRef(0);
+
   let viewPortRec = React.useRef({top: 0, height: 0});
+
   let prevViewPortRec = React.useRef({top: 0, height: 0});
 
   let previousSnapshot =
@@ -144,46 +113,29 @@ let make =
       startIndex: 0,
       endIndex: 0,
       scrollTop: 0,
-      rectangles: Belt.HashMap.Int.make(100),
-      heightMap: Belt.HashMap.Int.make(100),
+      rectangles: Belt.HashMap.Int.make(~hintSize=100),
+      heightMap: Belt.HashMap.Int.make(~hintSize=100),
     });
-
-  let sortByKey = (a, b) => {
-    let (id_a, _item_a) = a;
-
-    let (id_b, _item_b) = b;
-
-    switch (id_a > id_b) {
-    | true => 1
-    | false when id_a === id_b => 0
-    | _ => (-1)
-    };
-  };
 
   let convertToSortedArray = heightMap => {
     let map = React.Ref.current(heightMap);
 
-    let u =
-      data
-      ->Belt.Array.map(item => {
-          let id = item->identity;
+    data
+    ->Belt.Array.map(item => {
+        let id = item->identity;
 
-          (id, defaultHeight);
-        })
-      ->Belt.Array.map(item => {
-          let (id, _height) = item;
+        (id, defaultHeight);
+      })
+    ->Belt.Array.map(item => {
+        let (id, _height) = item;
 
-          map
-          ->Belt.HashMap.Int.get(id)
-          ->Belt.Option.mapWithDefault(item, measuredHeight =>
-              (id, measuredHeight)
-            );
-        })
-      ->Belt.SortArray.stableSortBy(sortByKey);
-
-    // u->log;
-
-    u;
+        map
+        ->Belt.HashMap.Int.get(id)
+        ->Belt.Option.mapWithDefault(item, measuredHeight =>
+            (id, measuredHeight)
+          );
+      })
+    ->Belt.SortArray.stableSortBy(sortByKey);
   };
 
   let element =
@@ -195,32 +147,25 @@ let make =
   let handleScroll = _e => {
     switch (element) {
     | Some(element) =>
-      // persist the current position as the prev
-
       let startItem =
         data
-        ->Belt.Array.map(i =>
-            switch (
-              recMap->React.Ref.current->Belt.HashMap.Int.get(i->identity)
-            ) {
-            | Some(h) => (i->identity, h)
-            | None => (i->identity, {top: 0, height: 0})
-            }
+        ->Belt.Array.map(rawData =>
+            recMap
+            ->React.Ref.current
+            ->Belt.HashMap.Int.get(rawData->identity)
+            ->Belt.Option.mapWithDefault(
+                (rawData->identity, {top: 0, height: 0}), rectangle =>
+                (rawData->identity, rectangle)
+              )
           )
         ->Belt.Array.reduce(
             (0, {top: 0, height: 0}),
             (sum, item) => {
-              let (id, rect) = item;
-              let (sumid, sumRect) = sum;
-              // find the first item that is in the viewport
-              // and thean calcualte correction
+              let (_sumId, sumRect) = sum;
+
               let yy = viewPortRec->React.Ref.current;
 
               sumRect.top + sumRect.height > yy.top ? sum : item;
-              // switch (rect->y, sumRect->y) {
-              // | (true, false) => item
-              // | _ => sum
-              // };
             },
           );
 
@@ -237,8 +182,7 @@ let make =
         ->Belt.Array.reduce(
             (0, {top: 0, height: 0}),
             (sum, item) => {
-              let (id, rect) = item;
-              let (sumid, sumRect) = sum;
+              let (_sumId, sumRect) = sum;
               // find the first item that is in the viewport
               // and thean calcualte correction
               let yy = viewPortRec->React.Ref.current;
@@ -281,23 +225,7 @@ let make =
 
         let (sid, _item) = startItem;
         let (eid, _item) = endItem;
-        // log(startItem);
-        // log(endItem);
-        // log(bufferCount);
-        // log(sid - 5);
-        // log(sid - 5 < 0 ? 0 : sid - 5);
 
-        let hhhh = {
-          startIndex: sid - 5 < 1 ? 1 : sid - 5,
-          endIndex:
-            eid + 5 > data->Belt.Array.length
-              ? data->Belt.Array.length : eid + 5,
-        };
-
-        // log(hhhh);
-        // log(endItem);
-        // endIndex.id + bufferCount > data->Belt.Array.length
-        //   ? data->Belt.Array.length : endIndex.id + bufferCount;
         switch (
           _prev.startIndex == (sid - bufferCount < 0 ? 0 : sid - bufferCount),
           _prev.endIndex
@@ -306,10 +234,13 @@ let make =
                  ? data->Belt.Array.length : eid + bufferCount
              ),
         ) {
-        | (true, true) =>
-          // "hmmm"->log;
-          _prev
-        | _ => hhhh
+        | (true, true) => _prev
+        | _ => {
+            startIndex: sid - bufferCount < 1 ? 1 : sid - bufferCount,
+            endIndex:
+              eid + bufferCount > data->Belt.Array.length
+                ? data->Belt.Array.length : eid + bufferCount,
+          }
         };
       });
 
@@ -417,7 +348,7 @@ let make =
       open React.Ref;
       open Belt.Array;
 
-      let recs = Belt.HashMap.Int.make(100);
+      let recs = Belt.HashMap.Int.make(~hintSize=100);
 
       let foo = ref(0);
 
@@ -453,31 +384,12 @@ let make =
       };
 
       let findAnchor = () => {
-        let viewPortReci: rectangle = {
-          height:
-            viewPortRef
-            ->current
-            ->Js.Nullable.toOption
-            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-            ->Belt.Option.mapWithDefault(
-                0,
-                Webapi.Dom.HtmlElement.clientHeight,
-              ),
-          top:
-            viewPortRef
-            ->current
-            ->Js.Nullable.toOption
-            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-            ->Belt.Option.map(Webapi.Dom.HtmlElement.scrollTop)
-            ->Belt.Option.mapWithDefault(0, int_of_float),
-        };
-
         let prev = previousSnapshot->current;
 
         let both =
           data
           ->Belt.List.fromArray
-          ->Belt.List.filter(item => {
+          ->Belt.List.keep(item => {
               let id = item->identity;
 
               switch (
@@ -505,38 +417,29 @@ let make =
           ->reduce(
               (0, {top: 0, height: 0}),
               (sum, item) => {
-                let (id, rect) = item;
-                let (sumid, sumRect) = sum;
+                let (_id, rect) = item;
+                let (_sumId, sumRect) = sum;
 
                 rect->y && !sumRect->y ? item : sum;
               },
             );
         let (idto, {top}) = ppp;
-        ppp->log;
 
         let pppIII =
           recs
           ->Belt.HashMap.Int.get(idto)
           ->Belt.Option.mapWithDefault({top: 0, height: 0}, x => x);
 
-        let yaaa = prevViewPortRec->current;
-
         let l = pppIII;
-        log(l);
-
-        let yaaaQ = viewPortReci;
-        // log(yaaaQ);
 
         let corr = l.top - top;
 
         switch (element, corr > 0) {
         | (Some(d), true) =>
-          log("---");
-          log(corr);
           Webapi.Dom.HtmlElement.scrollByWithOptions(
             {"top": corr->float_of_int, "left": 0.0, "behavior": "auto"},
             d,
-          );
+          )
         | (_, _) => ()
         };
       };
@@ -570,6 +473,7 @@ let make =
       ->React.Ref.current
       ->Belt.HashMap.Int.get(endIndex)
       ->Belt.Option.mapWithDefault(0, x => x.top);
+
     let last =
       recMap
       ->React.Ref.current
@@ -579,14 +483,11 @@ let make =
     last - en;
   };
 
-  log(startPadding);
-  log(endPadding);
-
   <List
     data={
       data
       ->Belt.List.fromArray
-      ->Belt.List.filter(item =>
+      ->Belt.List.keep(item =>
           identity(item) <= endIndex && identity(item) >= startIndex
         )
       ->Belt.List.toArray
