@@ -32,6 +32,22 @@ function calculateHeight(elementRef, heightMap, id) {
   return /* () */0;
 }
 
+function scheduler(callback, scheduler$1) {
+  var ticking = /* record */[/* contents */false];
+  var update = function (e) {
+    ticking[0] = false;
+    Curry._1(callback, e);
+    return /* () */0;
+  };
+  return (function (e) {
+      if (!ticking[0]) {
+        Curry._1(scheduler$1, update);
+      }
+      ticking[0] = true;
+      return /* () */0;
+    });
+}
+
 function scrollTop(prim) {
   return prim.scrollTop;
 }
@@ -39,6 +55,23 @@ function scrollTop(prim) {
 function log(prim) {
   console.log(prim);
   return /* () */0;
+}
+
+function throttle(fn) {
+  var inThrottle = /* record */[/* contents */false];
+  return (function (e) {
+      if (inThrottle[0]) {
+        return 0;
+      } else {
+        inThrottle[0] = true;
+        Curry._1(fn, e);
+        setTimeout((function (param) {
+                inThrottle[0] = false;
+                return /* () */0;
+              }), 300);
+        return /* () */0;
+      }
+    });
 }
 
 function sortByKey(a, b) {
@@ -149,135 +182,112 @@ function VirtualizedList(Props) {
         /* height */0
       ]);
   var previousSnapshot = React.useRef(/* record */[
-        /* rectangles */Belt_HashMapInt.make(100),
         /* startIndex */0,
-        /* endIndex */0,
-        /* scrollTop */0,
-        /* heightMap */Belt_HashMapInt.make(100)
+        /* endIndex */0
       ]);
   var element = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
           return prim;
         }));
-  var handleScroll = function (_e) {
-    if (element !== undefined) {
-      var element$1 = Caml_option.valFromOption(element);
-      var startItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
-                  return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
-                              Curry._1(identity, rawData),
-                              /* record */[
-                                /* top */0,
-                                /* height */0
-                              ]
-                            ], (function (rectangle) {
-                                return /* tuple */[
+  var handleScroll = scheduler(throttle((function (_e) {
+              if (element !== undefined) {
+                var element$1 = Caml_option.valFromOption(element);
+                var viewPortRectangle = viewPortRec.current;
+                var startItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+                            return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
                                         Curry._1(identity, rawData),
-                                        rectangle
-                                      ];
-                              }));
-                })), /* tuple */[
-            0,
-            /* record */[
-              /* top */0,
-              /* height */0
-            ]
-          ], (function (sum, item) {
-              var sumRect = sum[1];
-              var yy = viewPortRec.current;
-              var match = (sumRect[/* top */0] + sumRect[/* height */1] | 0) > yy[/* top */0];
-              if (match) {
-                return sum;
-              } else {
-                return item;
+                                        /* record */[
+                                          /* top */0,
+                                          /* height */0
+                                        ]
+                                      ], (function (rectangle) {
+                                          return /* tuple */[
+                                                  Curry._1(identity, rawData),
+                                                  rectangle
+                                                ];
+                                        }));
+                          })), /* tuple */[
+                      0,
+                      /* record */[
+                        /* top */0,
+                        /* height */0
+                      ]
+                    ], (function (param, item) {
+                        var sumRect = param[1];
+                        var match = (sumRect[/* top */0] + sumRect[/* height */1] | 0) > viewPortRectangle[/* top */0];
+                        if (match) {
+                          return /* tuple */[
+                                  param[0],
+                                  sumRect
+                                ];
+                        } else {
+                          return item;
+                        }
+                      }));
+                var endItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+                            return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
+                                        Curry._1(identity, rawData),
+                                        /* record */[
+                                          /* top */0,
+                                          /* height */0
+                                        ]
+                                      ], (function (rectangle) {
+                                          return /* tuple */[
+                                                  Curry._1(identity, rawData),
+                                                  rectangle
+                                                ];
+                                        }));
+                          })), /* tuple */[
+                      0,
+                      /* record */[
+                        /* top */0,
+                        /* height */0
+                      ]
+                    ], (function (param, item) {
+                        var sumRect = param[1];
+                        var match = (viewPortRectangle[/* top */0] + viewPortRectangle[/* height */1] | 0) <= sumRect[/* top */0];
+                        if (match) {
+                          return /* tuple */[
+                                  param[0],
+                                  sumRect
+                                ];
+                        } else {
+                          return item;
+                        }
+                      }));
+                Curry._1(setIndex, (function (_prev) {
+                        var init = previousSnapshot.current;
+                        previousSnapshot.current = /* record */[
+                          /* startIndex */_prev[/* startIndex */0],
+                          /* endIndex */init[/* endIndex */1]
+                        ];
+                        var init$1 = previousSnapshot.current;
+                        previousSnapshot.current = /* record */[
+                          /* startIndex */init$1[/* startIndex */0],
+                          /* endIndex */_prev[/* endIndex */1]
+                        ];
+                        prevViewPortRec.current = viewPortRec.current;
+                        viewPortRec.current = /* record */[
+                          /* top */element$1.scrollTop | 0,
+                          /* height */element$1.clientHeight
+                        ];
+                        var eid = endItem[0];
+                        var sid = startItem[0];
+                        var match = (sid - bufferCount | 0) < 1;
+                        var match$1 = (eid + bufferCount | 0) > data.length;
+                        return /* record */[
+                                /* startIndex */match ? 1 : sid - bufferCount | 0,
+                                /* endIndex */match$1 ? data.length : eid + bufferCount | 0
+                              ];
+                      }));
               }
-            }));
-      var endItem = Belt_Array.reduce(Belt_Array.map(data, (function (i) {
-                  var match = Belt_HashMapInt.get(recMap.current, Curry._1(identity, i));
-                  if (match !== undefined) {
-                    return /* tuple */[
-                            Curry._1(identity, i),
-                            match
-                          ];
-                  } else {
-                    return /* tuple */[
-                            Curry._1(identity, i),
-                            /* record */[
-                              /* top */0,
-                              /* height */0
-                            ]
-                          ];
-                  }
-                })), /* tuple */[
-            0,
-            /* record */[
-              /* top */0,
-              /* height */0
-            ]
-          ], (function (sum, item) {
-              var yy = viewPortRec.current;
-              var match = (yy[/* top */0] + yy[/* height */1] | 0) <= sum[1][/* top */0];
-              if (match) {
-                return sum;
-              } else {
-                return item;
-              }
-            }));
-      Curry._1(setIndex, (function (_prev) {
-              var init = previousSnapshot.current;
-              previousSnapshot.current = /* record */[
-                /* rectangles */init[/* rectangles */0],
-                /* startIndex */_prev[/* startIndex */0],
-                /* endIndex */init[/* endIndex */2],
-                /* scrollTop */init[/* scrollTop */3],
-                /* heightMap */init[/* heightMap */4]
-              ];
-              var init$1 = previousSnapshot.current;
-              previousSnapshot.current = /* record */[
-                /* rectangles */init$1[/* rectangles */0],
-                /* startIndex */init$1[/* startIndex */1],
-                /* endIndex */_prev[/* endIndex */1],
-                /* scrollTop */element$1.scrollTop | 0,
-                /* heightMap */Belt_HashMapInt.copy(heightMap.current)
-              ];
-              var viewPortReci_000 = /* top */element$1.scrollTop | 0;
-              var viewPortReci_001 = /* height */element$1.clientHeight;
-              var viewPortReci = /* record */[
-                viewPortReci_000,
-                viewPortReci_001
-              ];
-              prevViewPortRec.current = viewPortRec.current;
-              viewPortRec.current = viewPortReci;
-              var eid = endItem[0];
-              var sid = startItem[0];
-              var match = (sid - bufferCount | 0) < 0;
-              var match$1 = _prev[/* startIndex */0] === (
-                match ? 0 : sid - bufferCount | 0
-              );
-              var match$2 = (eid + bufferCount | 0) > data.length;
-              var match$3 = _prev[/* endIndex */1] === (
-                match$2 ? data.length : eid + bufferCount | 0
-              );
-              var exit = 0;
-              if (match$1 && match$3) {
-                return _prev;
-              } else {
-                exit = 1;
-              }
-              if (exit === 1) {
-                var match$4 = (sid - bufferCount | 0) < 1;
-                var match$5 = (eid + bufferCount | 0) > data.length;
-                return /* record */[
-                        /* startIndex */match$4 ? 1 : sid - bufferCount | 0,
-                        /* endIndex */match$5 ? data.length : eid + bufferCount | 0
-                      ];
-              }
-              
-            }));
-    }
-    Curry._1(setCorrection, (function (x) {
-            return x + 1 | 0;
-          }));
-    return /* () */0;
-  };
+              Curry._1(setCorrection, (function (x) {
+                      return x + 1 | 0;
+                    }));
+              return /* () */0;
+            })), (function (prim) {
+          requestAnimationFrame(prim);
+          return /* () */0;
+        }));
   React.useEffect((function () {
           setTimeout((function (param) {
                   return Curry._1(setIndex, (function (prev) {
@@ -334,7 +344,7 @@ function VirtualizedList(Props) {
             var prev = previousSnapshot.current;
             var both = Belt_Array.keep(data, (function (item) {
                     var id = Curry._1(identity, item);
-                    var match = prev[/* startIndex */1] <= id && prev[/* endIndex */2] >= id && startIndex <= id && endIndex >= id;
+                    var match = prev[/* startIndex */0] <= id && prev[/* endIndex */1] >= id && startIndex <= id && endIndex >= id;
                     if (match) {
                       return true;
                     } else {
@@ -433,8 +443,10 @@ var make = VirtualizedList;
 exports.recsHeight = recsHeight;
 exports.heightDelta = heightDelta;
 exports.calculateHeight = calculateHeight;
+exports.scheduler = scheduler;
 exports.scrollTop = scrollTop;
 exports.log = log;
+exports.throttle = throttle;
 exports.sortByKey = sortByKey;
 exports.defaultPositionValue = defaultPositionValue;
 exports.isBetween = isBetween;

@@ -57,9 +57,47 @@ let calculateHeight = (elementRef, heightMap, id) => {
   ->ignore;
 };
 
+/**
+ *  We don't perform animations which means we don't have to recursevily call
+ *  rAF. But we can end up calling rAF for requesting bascially the same
+ *  transition. So if a transition is in effect we set a boolean flag to
+ *  prevent any further invocation of the rAF.
+ *
+ *  Only when it finished the current trasnistion we call it again.
+ */
+let scheduler = (callback, scheduler) => {
+  let ticking = ref(false);
+
+  let update = e => {
+    ticking := false;
+    callback(e)->ignore;
+  };
+
+  let requestTick = e => {
+    if (! ticking^) {
+      scheduler(update);
+    };
+
+    ticking := true;
+  };
+
+  requestTick;
+};
+
 let scrollTop = Webapi.Dom.HtmlElement.scrollTop;
 
 let log = Js.log;
+
+let throttle = fn => {
+  let inThrottle = ref(false);
+
+  e =>
+    if (! inThrottle^) {
+      inThrottle := true;
+      fn(e);
+      Js.Global.setTimeout(() => inThrottle := false, 300)->ignore;
+    };
+};
 
 let sortByKey = (a, b) => {
   let (id_a, _item_a) = a;
@@ -125,6 +163,11 @@ let createNewRecs = (~heightMap, ~identity, ~defaultHeight, ~data) => {
   recs;
 };
 
+type padding = {
+  endPadding: int,
+  startPadding: int,
+};
+
 [@react.component]
 let make =
     (
@@ -155,14 +198,7 @@ let make =
 
   let prevViewPortRec = React.useRef({top: 0, height: 0});
 
-  let previousSnapshot =
-    React.useRef({
-      startIndex: 0,
-      endIndex: 0,
-      scrollTop: 0,
-      rectangles: Belt.HashMap.Int.make(~hintSize=100),
-      heightMap: Belt.HashMap.Int.make(~hintSize=100),
-    });
+  let previousSnapshot = React.useRef({startIndex: 0, endIndex: 0});
 
   let element =
     viewPortRef
@@ -170,111 +206,91 @@ let make =
     ->Js.Nullable.toOption
     ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement);
 
-  let handleScroll = _e => {
-    switch (element) {
-    | Some(element) =>
-      let startItem =
-        data
-        ->Belt.Array.map(rawData =>
-            recMap
-            ->React.Ref.current
-            ->Belt.HashMap.Int.get(rawData->identity)
-            ->Belt.Option.mapWithDefault(
-                (rawData->identity, {top: 0, height: 0}), rectangle =>
-                (rawData->identity, rectangle)
+  let handleScroll =
+    scheduler(
+      throttle(_e => {
+        switch (element) {
+        | Some(element) =>
+          let viewPortRectangle = viewPortRec->React.Ref.current;
+
+          let startItem =
+            data
+            ->Belt.Array.map(rawData =>
+                recMap
+                ->React.Ref.current
+                ->Belt.HashMap.Int.get(rawData->identity)
+                ->Belt.Option.mapWithDefault(
+                    (rawData->identity, {top: 0, height: 0}), rectangle =>
+                    (rawData->identity, rectangle)
+                  )
               )
-          )
-        ->Belt.Array.reduce(
-            (0, {top: 0, height: 0}),
-            (sum, item) => {
-              let (_sumId, sumRect) = sum;
+            ->Belt.Array.reduce(
+                (0, {top: 0, height: 0}), ((sumId, sumRect), item) =>
+                sumRect.top + sumRect.height > viewPortRectangle.top
+                  ? (sumId, sumRect) : item
+              );
 
-              let yy = viewPortRec->React.Ref.current;
+          let endItem =
+            data
+            ->Belt.Array.map(rawData =>
+                recMap
+                ->React.Ref.current
+                ->Belt.HashMap.Int.get(rawData->identity)
+                ->Belt.Option.mapWithDefault(
+                    (rawData->identity, {top: 0, height: 0}), rectangle =>
+                    (rawData->identity, rectangle)
+                  )
+              )
+            ->Belt.Array.reduce(
+                (0, {top: 0, height: 0}), ((sumId, sumRect), item) =>
+                viewPortRectangle.top + viewPortRectangle.height <= sumRect.top
+                  ? (sumId, sumRect) : item
+              );
 
-              sumRect.top + sumRect.height > yy.top ? sum : item;
-            },
-          );
+          setIndex(_prev => {
+            React.Ref.setCurrent(
+              previousSnapshot,
+              {
+                ...React.Ref.current(previousSnapshot),
+                startIndex: _prev.startIndex,
+              },
+            );
 
-      let endItem =
-        data
-        ->Belt.Array.map(i =>
-            switch (
-              recMap->React.Ref.current->Belt.HashMap.Int.get(i->identity)
-            ) {
-            | Some(h) => (i->identity, h)
-            | None => (i->identity, {top: 0, height: 0})
-            }
-          )
-        ->Belt.Array.reduce(
-            (0, {top: 0, height: 0}),
-            (sum, item) => {
-              let (_sumId, sumRect) = sum;
-              // find the first item that is in the viewport
-              // and thean calcualte correction
-              let yy = viewPortRec->React.Ref.current;
+            React.Ref.setCurrent(
+              previousSnapshot,
+              {
+                ...React.Ref.current(previousSnapshot),
+                endIndex: _prev.endIndex,
+              },
+            );
 
-              yy.top + yy.height <= sumRect.top ? sum : item;
-              // switch (rect->y, sumRect->y) {
-              // | (true, false) => item
-              // | _ => sum
-              // };
-            },
-          );
+            prevViewPortRec->React.Ref.setCurrent(
+              viewPortRec->React.Ref.current,
+            );
 
-      setIndex(_prev => {
-        React.Ref.setCurrent(
-          previousSnapshot,
-          {
-            ...React.Ref.current(previousSnapshot),
-            startIndex: _prev.startIndex,
-          },
-        );
+            viewPortRec->React.Ref.setCurrent({
+              height: element->Webapi.Dom.HtmlElement.clientHeight,
+              top: element->Webapi.Dom.HtmlElement.scrollTop->int_of_float,
+            });
 
-        React.Ref.setCurrent(
-          previousSnapshot,
-          {
-            ...React.Ref.current(previousSnapshot),
-            endIndex: _prev.endIndex,
-            scrollTop: element->scrollTop->int_of_float,
-            heightMap: heightMap->React.Ref.current->Belt.HashMap.Int.copy,
-          },
-        );
+            let (sid, _item) = startItem;
+            let (eid, _item) = endItem;
 
-        let viewPortReci: rectangle = {
-          height: Webapi.Dom.HtmlElement.clientHeight(element),
-          top: Webapi.Dom.HtmlElement.scrollTop(element)->int_of_float,
+            {
+              startIndex: sid - bufferCount < 1 ? 1 : sid - bufferCount,
+              endIndex:
+                eid + bufferCount > data->Belt.Array.length
+                  ? data->Belt.Array.length : eid + bufferCount,
+            };
+          });
+
+        | _ => ()
         };
 
-        prevViewPortRec->React.Ref.setCurrent(viewPortRec->React.Ref.current);
-
-        viewPortRec->React.Ref.setCurrent(viewPortReci);
-
-        let (sid, _item) = startItem;
-        let (eid, _item) = endItem;
-
-        switch (
-          _prev.startIndex == (sid - bufferCount < 0 ? 0 : sid - bufferCount),
-          _prev.endIndex
-          == (
-               eid + bufferCount > data->Belt.Array.length
-                 ? data->Belt.Array.length : eid + bufferCount
-             ),
-        ) {
-        | (true, true) => _prev
-        | _ => {
-            startIndex: sid - bufferCount < 1 ? 1 : sid - bufferCount,
-            endIndex:
-              eid + bufferCount > data->Belt.Array.length
-                ? data->Belt.Array.length : eid + bufferCount,
-          }
-        };
-      });
-
-    | _ => ()
-    };
-
-    setCorrection(x => x + 1)->ignore;
-  };
+        setCorrection(x => x + 1)->ignore;
+      }),
+      Webapi.requestAnimationFrame,
+    );
 
   React.useEffect1(
     () => {
@@ -450,6 +466,7 @@ let make =
             },
             viewport,
           )
+
         | (_, _) => ()
         };
       };
