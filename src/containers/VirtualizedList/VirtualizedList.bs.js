@@ -4,7 +4,6 @@
 var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
 var Caml_obj = require("bs-platform/lib/js/caml_obj.js");
-var Belt_List = require("bs-platform/lib/js/belt_List.js");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 var Belt_Option = require("bs-platform/lib/js/belt_Option.js");
 var Caml_option = require("bs-platform/lib/js/caml_option.js");
@@ -62,6 +61,55 @@ var defaultPositionValue = /* record */[
   defaultPositionValue_001
 ];
 
+function isBetween(target, beginning, endValue) {
+  if (Caml_obj.caml_greaterequal(target, beginning)) {
+    return Caml_obj.caml_lessequal(target, endValue);
+  } else {
+    return false;
+  }
+}
+
+function doesIntersectWith(a, b) {
+  if (isBetween(a[/* top */0], b[/* top */0], b[/* top */0] + b[/* height */1] | 0)) {
+    return true;
+  } else {
+    return isBetween(b[/* top */0], a[/* top */0], a[/* top */0] + a[/* height */1] | 0);
+  }
+}
+
+function createNewRecs(heightMap, identity, defaultHeight, data) {
+  var recs = Belt_HashMapInt.make(100);
+  var currentHeight = /* record */[/* contents */0];
+  var convertToSortedArray = function (heightMap) {
+    var map = heightMap.current;
+    return Belt_SortArray.stableSortBy(Belt_Array.map(Belt_Array.map(data, (function (item) {
+                          var id = Curry._1(identity, item);
+                          return /* tuple */[
+                                  id,
+                                  defaultHeight
+                                ];
+                        })), (function (item) {
+                      var id = item[0];
+                      return Belt_Option.mapWithDefault(Belt_HashMapInt.get(map, id), item, (function (measuredHeight) {
+                                    return /* tuple */[
+                                            id,
+                                            measuredHeight
+                                          ];
+                                  }));
+                    })), sortByKey);
+  };
+  Belt_Array.forEach(convertToSortedArray(heightMap), (function (item) {
+          var height = item[1];
+          Belt_HashMapInt.set(recs, item[0], /* record */[
+                /* top */currentHeight[0],
+                /* height */height
+              ]);
+          currentHeight[0] = currentHeight[0] + height | 0;
+          return /* () */0;
+        }));
+  return recs;
+}
+
 function VirtualizedList(Props) {
   var match = Props.bufferCount;
   var bufferCount = match !== undefined ? match : 5;
@@ -107,24 +155,6 @@ function VirtualizedList(Props) {
         /* scrollTop */0,
         /* heightMap */Belt_HashMapInt.make(100)
       ]);
-  var convertToSortedArray = function (heightMap) {
-    var map = heightMap.current;
-    return Belt_SortArray.stableSortBy(Belt_Array.map(Belt_Array.map(data, (function (item) {
-                          var id = Curry._1(identity, item);
-                          return /* tuple */[
-                                  id,
-                                  defaultHeight
-                                ];
-                        })), (function (item) {
-                      var id = item[0];
-                      return Belt_Option.mapWithDefault(Belt_HashMapInt.get(map, id), item, (function (measuredHeight) {
-                                    return /* tuple */[
-                                            id,
-                                            measuredHeight
-                                          ];
-                                  }));
-                    })), sortByKey);
-  };
   var element = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
           return prim;
         }));
@@ -294,94 +324,65 @@ function VirtualizedList(Props) {
                   });
         }), /* array */[]);
   React.useEffect((function () {
-          var recs = Belt_HashMapInt.make(100);
-          var foo = /* record */[/* contents */0];
           var prevRec = Belt_HashMapInt.copy(recMap.current);
           Belt_HashMapInt.forEach(refMap.current, (function (key, item) {
                   return calculateHeight(item, heightMap, key);
                 }));
-          Belt_Array.forEach(convertToSortedArray(heightMap), (function (item) {
-                  var height = item[1];
-                  Belt_HashMapInt.set(recs, item[0], /* record */[
-                        /* top */foo[0],
-                        /* height */height
-                      ]);
-                  foo[0] = foo[0] + height | 0;
-                  return /* () */0;
-                }));
+          var recs = createNewRecs(heightMap, identity, defaultHeight, data);
           recMap.current = recs;
-          var isBetween = function (target, beginning, endValue) {
-            if (Caml_obj.caml_greaterequal(target, beginning)) {
-              return Caml_obj.caml_lessequal(target, endValue);
-            } else {
-              return false;
-            }
-          };
           var findAnchor = function (param) {
             var prev = previousSnapshot.current;
-            var both = Belt_List.toArray(Belt_List.keep(Belt_List.fromArray(data), (function (item) {
-                        var id = Curry._1(identity, item);
-                        var match = prev[/* startIndex */1] <= id && prev[/* endIndex */2] >= id;
-                        var match$1 = startIndex <= id && endIndex >= id;
-                        if (match && match$1) {
-                          return true;
-                        } else {
-                          return false;
-                        }
-                      })));
+            var both = Belt_Array.keep(data, (function (item) {
+                    var id = Curry._1(identity, item);
+                    var match = prev[/* startIndex */1] <= id && prev[/* endIndex */2] >= id && startIndex <= id && endIndex >= id;
+                    if (match) {
+                      return true;
+                    } else {
+                      return false;
+                    }
+                  }));
             var partial_arg = prevViewPortRec.current;
-            var y = function (param) {
-              var a = partial_arg;
-              var b = param;
-              var d = isBetween(a[/* top */0], b[/* top */0], b[/* top */0] + b[/* height */1] | 0);
-              var ds = isBetween(b[/* top */0], a[/* top */0], a[/* top */0] + a[/* height */1] | 0);
-              if (d) {
-                return true;
-              } else {
-                return ds;
-              }
+            var interSectWithPrevViewPortPosition = function (param) {
+              return doesIntersectWith(partial_arg, param);
             };
-            var ppp = Belt_Array.reduce(Belt_Array.map(both, (function (i) {
-                        var match = Belt_HashMapInt.get(prevRec, Curry._1(identity, i));
-                        if (match !== undefined) {
-                          return /* tuple */[
-                                  Curry._1(identity, i),
-                                  match
-                                ];
-                        } else {
-                          return /* tuple */[
-                                  Curry._1(identity, i),
-                                  /* record */[
-                                    /* top */0,
-                                    /* height */0
-                                  ]
-                                ];
-                        }
+            var anchor = Belt_Array.reduce(Belt_Array.map(both, (function (item) {
+                        return Belt_Option.mapWithDefault(Belt_HashMapInt.get(prevRec, Curry._1(identity, item)), /* tuple */[
+                                    Curry._1(identity, item),
+                                    /* record */[
+                                      /* top */0,
+                                      /* height */0
+                                    ]
+                                  ], (function (rectangle) {
+                                      return /* tuple */[
+                                              Curry._1(identity, item),
+                                              rectangle
+                                            ];
+                                    }));
                       })), /* tuple */[
                   0,
                   /* record */[
                     /* top */0,
                     /* height */0
                   ]
-                ], (function (sum, item) {
-                    var match = Curry._1(y, item[1]) && !Curry._1(y, sum[1]);
+                ], (function (best, current) {
+                    var match = Curry._1(interSectWithPrevViewPortPosition, current[1]) && !Curry._1(interSectWithPrevViewPortPosition, best[1]);
                     if (match) {
-                      return item;
+                      return current;
                     } else {
-                      return sum;
+                      return best;
                     }
                   }));
-            var pppIII = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recs, ppp[0]), /* record */[
+            var currentAnchorRectangle = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recs, anchor[0]), /* record */[
                   /* top */0,
                   /* height */0
                 ], (function (x) {
                     return x;
                   }));
-            var corr = pppIII[/* top */0] - ppp[1][/* top */0] | 0;
-            var match = corr > 0;
+            var correction = currentAnchorRectangle[/* top */0] - anchor[1][/* top */0] | 0;
+            var match = correction > 0;
             if (element !== undefined && match) {
               Caml_option.valFromOption(element).scrollBy({
-                    top: corr,
+                    top: correction,
                     left: 0.0,
                     behavior: "auto"
                   });
@@ -390,8 +391,8 @@ function VirtualizedList(Props) {
               return /* () */0;
             }
           };
-          var match = heightDelta(data, identity, recs, prevRec);
-          if (match !== 0) {
+          var match = heightDelta(data, identity, recs, prevRec) === 0;
+          if (!match) {
             findAnchor(/* () */0);
           }
           return undefined;
@@ -402,23 +403,23 @@ function VirtualizedList(Props) {
   var startPadding = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, startIndex), 0, (function (x) {
           return x[/* top */0];
         }));
-  var en = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, endIndex), 0, (function (x) {
+  var endValue = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, endIndex), 0, (function (x) {
           return x[/* top */0];
         }));
-  var last = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, 100), 0, (function (x) {
+  var lastValue = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Belt_HashMapInt.size(recMap.current)), 0, (function (x) {
           return x[/* top */0];
         }));
-  var endPadding = last - en | 0;
+  var endPadding = lastValue - endValue | 0;
   return React.createElement(List$ReactHooksTemplate.make, {
               afterPadding: endPadding,
               beforePadding: startPadding,
-              data: Belt_List.toArray(Belt_List.keep(Belt_List.fromArray(data), (function (item) {
-                          if (Curry._1(identity, item) <= endIndex) {
-                            return Curry._1(identity, item) >= startIndex;
-                          } else {
-                            return false;
-                          }
-                        }))),
+              data: Belt_Array.keep(data, (function (item) {
+                      if (Curry._1(identity, item) <= endIndex) {
+                        return Curry._1(identity, item) >= startIndex;
+                      } else {
+                        return false;
+                      }
+                    })),
               identity: identity,
               onRefChange: (function (id, elementRef) {
                   return Belt_HashMapInt.set(refMap.current, id, elementRef);
@@ -436,5 +437,8 @@ exports.scrollTop = scrollTop;
 exports.log = log;
 exports.sortByKey = sortByKey;
 exports.defaultPositionValue = defaultPositionValue;
+exports.isBetween = isBetween;
+exports.doesIntersectWith = doesIntersectWith;
+exports.createNewRecs = createNewRecs;
 exports.make = make;
 /* defaultPositionValue Not a pure module */

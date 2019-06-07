@@ -78,6 +78,53 @@ let defaultPositionValue = {
   heightMap: Belt.HashMap.Int.make(~hintSize=100),
 };
 
+let isBetween = (target, beginning, endValue) => {
+  target >= beginning && target <= endValue;
+};
+
+let doesIntersectWith = (a, b) =>
+  isBetween(a.top, b.top, b.top + b.height)
+  || isBetween(b.top, a.top, a.top + a.height);
+
+let createNewRecs = (~heightMap, ~identity, ~defaultHeight, ~data) => {
+  let recs = Belt.HashMap.Int.make(~hintSize=100);
+
+  let currentHeight = ref(0);
+
+  let convertToSortedArray = heightMap => {
+    let map = React.Ref.current(heightMap);
+
+    data
+    ->Belt.Array.map(item => {
+        let id = item->identity;
+
+        (id, defaultHeight);
+      })
+    ->Belt.Array.map(item => {
+        let (id, _height) = item;
+
+        map
+        ->Belt.HashMap.Int.get(id)
+        ->Belt.Option.mapWithDefault(item, measuredHeight =>
+            (id, measuredHeight)
+          );
+      })
+    ->Belt.SortArray.stableSortBy(sortByKey);
+  };
+
+  heightMap
+  ->convertToSortedArray
+  ->Belt.Array.forEach(item => {
+      let (id, height) = item;
+
+      Belt.HashMap.Int.set(recs, id, {top: currentHeight^, height});
+
+      currentHeight := currentHeight^ + height;
+    });
+
+  recs;
+};
+
 [@react.component]
 let make =
     (
@@ -116,27 +163,6 @@ let make =
       rectangles: Belt.HashMap.Int.make(~hintSize=100),
       heightMap: Belt.HashMap.Int.make(~hintSize=100),
     });
-
-  let convertToSortedArray = heightMap => {
-    let map = React.Ref.current(heightMap);
-
-    data
-    ->Belt.Array.map(item => {
-        let id = item->identity;
-
-        (id, defaultHeight);
-      })
-    ->Belt.Array.map(item => {
-        let (id, _height) = item;
-
-        map
-        ->Belt.HashMap.Int.get(id)
-        ->Belt.Option.mapWithDefault(item, measuredHeight =>
-            (id, measuredHeight)
-          );
-      })
-    ->Belt.SortArray.stableSortBy(sortByKey);
-  };
 
   let element =
     viewPortRef
@@ -263,6 +289,9 @@ let make =
     [||],
   );
 
+  /**
+   *
+   */
   React.useEffect1(
     () => {
       setTimeout(
@@ -288,6 +317,9 @@ let make =
     [||],
   );
 
+  /**
+   * Attaches the eventlistener to the viewport.
+   */
   React.useEffect1(
     () => {
       switch (element) {
@@ -348,10 +380,6 @@ let make =
       open React.Ref;
       open Belt.Array;
 
-      let recs = Belt.HashMap.Int.make(~hintSize=100);
-
-      let foo = ref(0);
-
       let prevRec = Belt.HashMap.Int.copy(recMap->current);
 
       refMap
@@ -360,101 +388,80 @@ let make =
           calculateHeight(item, heightMap, key)
         );
 
-      heightMap
-      ->convertToSortedArray
-      ->forEach(item => {
-          let (id, height) = item;
-
-          Belt.HashMap.Int.set(recs, id, {top: foo^, height});
-
-          foo := foo^ + height;
-        });
+      let recs = createNewRecs(~heightMap, ~identity, ~defaultHeight, ~data);
 
       recMap->setCurrent(recs);
-
-      let isBetween = (target, beginning, endValue) => {
-        target >= beginning && target <= endValue;
-      };
-
-      let doesIntersectWith = (a, b) => {
-        let d = isBetween(a.top, b.top, b.top + b.height);
-        let ds = isBetween(b.top, a.top, a.top + a.height);
-
-        d || ds;
-      };
 
       let findAnchor = () => {
         let prev = previousSnapshot->current;
 
         let both =
-          data
-          ->Belt.List.fromArray
-          ->Belt.List.keep(item => {
-              let id = item->identity;
+          data->Belt.Array.keep(item => {
+            let id = item->identity;
 
-              switch (
-                prev.startIndex <= id && prev.endIndex >= id,
-                startIndex <= id && endIndex >= id,
-              ) {
-              | (true, true) => true
-              | _ => false
-              };
-            })
-          ->Belt.List.toArray;
+            prev.startIndex <= id
+            && prev.endIndex >= id
+            && startIndex <= id
+            && endIndex >= id
+              ? true : false;
+          });
 
-        let y = doesIntersectWith(prevViewPortRec->current);
+        let interSectWithPrevViewPortPosition =
+          prevViewPortRec->current->doesIntersectWith;
 
-        let gggg = prevRec;
-
-        let ppp =
+        let anchor: (int, rectangle) =
           both
-          ->map(i =>
-              switch (gggg->Belt.HashMap.Int.get(i->identity)) {
-              | Some(h) => (i->identity, h)
-              | None => (i->identity, {top: 0, height: 0})
-              }
+          ->map(item =>
+              prevRec
+              ->Belt.HashMap.Int.get(item->identity)
+              ->Belt.Option.mapWithDefault(
+                  (item->identity, {top: 0, height: 0}), rectangle =>
+                  (item->identity, rectangle)
+                )
             )
           ->reduce(
               (0, {top: 0, height: 0}),
-              (sum, item) => {
-                let (_id, rect) = item;
-                let (_sumId, sumRect) = sum;
+              (best, current) => {
+                let (_id, currentRectangle) = current;
+                let (_sumId, bestRectangle) = best;
 
-                rect->y && !sumRect->y ? item : sum;
+                currentRectangle->interSectWithPrevViewPortPosition
+                && !bestRectangle->interSectWithPrevViewPortPosition
+                  ? current : best;
               },
             );
-        let (idto, {top}) = ppp;
 
-        let pppIII =
+        let (anchorId, prevAnchorRectangle) = anchor;
+
+        let currentAnchorRectangle =
           recs
-          ->Belt.HashMap.Int.get(idto)
+          ->Belt.HashMap.Int.get(anchorId)
           ->Belt.Option.mapWithDefault({top: 0, height: 0}, x => x);
 
-        let l = pppIII;
+        let correction = currentAnchorRectangle.top - prevAnchorRectangle.top;
 
-        let corr = l.top - top;
-
-        switch (element, corr > 0) {
-        | (Some(d), true) =>
+        switch (element, correction > 0) {
+        | (Some(viewport), true) =>
           Webapi.Dom.HtmlElement.scrollByWithOptions(
-            {"top": corr->float_of_int, "left": 0.0, "behavior": "auto"},
-            d,
+            {
+              "top": correction->float_of_int,
+              "left": 0.0,
+              "behavior": "auto",
+            },
+            viewport,
           )
         | (_, _) => ()
         };
       };
 
-      switch (
-        heightDelta(
-          ~data,
-          ~identity,
-          ~rectangles=recs,
-          ~previousRectangles=prevRec,
-        )
-      ) {
-      | 0 => ()
-      | _ => findAnchor()
-      };
+      heightDelta(
+        ~data,
+        ~identity,
+        ~rectangles=recs,
+        ~previousRectangles=prevRec,
+      )
+      === 0
+        ? () : findAnchor();
 
       None;
     },
@@ -468,36 +475,35 @@ let make =
     ->Belt.Option.mapWithDefault(0, x => x.top);
 
   let endPadding = {
-    let en =
+    let endValue =
       recMap
       ->React.Ref.current
       ->Belt.HashMap.Int.get(endIndex)
       ->Belt.Option.mapWithDefault(0, x => x.top);
 
-    let last =
+    let lastValue =
       recMap
       ->React.Ref.current
-      ->Belt.HashMap.Int.get(100)
+      ->Belt.HashMap.Int.get(
+          Belt.HashMap.Int.size(recMap->React.Ref.current),
+        )
       ->Belt.Option.mapWithDefault(0, x => x.top);
 
-    last - en;
+    lastValue - endValue;
   };
 
   <List
     data={
-      data
-      ->Belt.List.fromArray
-      ->Belt.List.keep(item =>
-          identity(item) <= endIndex && identity(item) >= startIndex
-        )
-      ->Belt.List.toArray
+      data->Belt.Array.keep(item =>
+        item->identity <= endIndex && item->identity >= startIndex
+      )
     }
     identity
     renderItem
     beforePadding=startPadding
     afterPadding=endPadding
     onRefChange={(id, elementRef) =>
-      Belt.HashMap.Int.set(React.Ref.current(refMap), id, elementRef)
+      Belt.HashMap.Int.set(refMap->React.Ref.current, id, elementRef)
     }
   />;
 };
