@@ -95,7 +95,7 @@ let throttle = fn => {
     if (! inThrottle^) {
       inThrottle := true;
       fn(e);
-      Js.Global.setTimeout(() => inThrottle := false, 300)->ignore;
+      Js.Global.setTimeout(() => inThrottle := false, 100)->ignore;
     };
 };
 
@@ -192,8 +192,6 @@ let make =
 
   let recMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
 
-  let scrollTopPosition = React.useRef(0);
-
   let viewPortRec = React.useRef({top: 0, height: 0});
 
   let prevViewPortRec = React.useRef({top: 0, height: 0});
@@ -205,6 +203,83 @@ let make =
     ->React.Ref.current
     ->Js.Nullable.toOption
     ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement);
+
+  let rawHandler = element => {
+    switch (element) {
+    | Some(element) =>
+      let viewPortRectangle = viewPortRec->React.Ref.current;
+
+      let startItem =
+        data
+        ->Belt.Array.map(rawData =>
+            recMap
+            ->React.Ref.current
+            ->Belt.HashMap.Int.get(rawData->identity)
+            ->Belt.Option.mapWithDefault(
+                (rawData->identity, {top: 0, height: 0}), rectangle =>
+                (rawData->identity, rectangle)
+              )
+          )
+        ->Belt.Array.reduce(
+            (0, {top: 0, height: 0}), ((sumId, sumRect), item) =>
+            sumRect.top + sumRect.height > viewPortRectangle.top
+              ? (sumId, sumRect) : item
+          );
+
+      let endItem =
+        data
+        ->Belt.Array.map(rawData =>
+            recMap
+            ->React.Ref.current
+            ->Belt.HashMap.Int.get(rawData->identity)
+            ->Belt.Option.mapWithDefault(
+                (rawData->identity, {top: 0, height: 0}), rectangle =>
+                (rawData->identity, rectangle)
+              )
+          )
+        ->Belt.Array.reduce(
+            (0, {top: 0, height: 0}), ((sumId, sumRect), item) =>
+            viewPortRectangle.top + viewPortRectangle.height <= sumRect.top
+              ? (sumId, sumRect) : item
+          );
+
+      setIndex(_prev => {
+        React.Ref.setCurrent(
+          previousSnapshot,
+          {
+            ...React.Ref.current(previousSnapshot),
+            startIndex: _prev.startIndex,
+          },
+        );
+
+        React.Ref.setCurrent(
+          previousSnapshot,
+          {...React.Ref.current(previousSnapshot), endIndex: _prev.endIndex},
+        );
+
+        prevViewPortRec->React.Ref.setCurrent(viewPortRec->React.Ref.current);
+
+        viewPortRec->React.Ref.setCurrent({
+          height: element->Webapi.Dom.HtmlElement.clientHeight,
+          top: element->Webapi.Dom.HtmlElement.scrollTop->int_of_float,
+        });
+
+        let (sid, _item) = startItem;
+        let (eid, _item) = endItem;
+
+        {
+          startIndex: sid - bufferCount < 1 ? 1 : sid - bufferCount,
+          endIndex:
+            eid + bufferCount > data->Belt.Array.length
+              ? data->Belt.Array.length : eid + bufferCount,
+        };
+      });
+
+    | _ => ()
+    };
+
+    setCorrection(x => x + 1)->ignore;
+  };
 
   let handleScroll =
     scheduler(
@@ -292,19 +367,6 @@ let make =
       Webapi.requestAnimationFrame,
     );
 
-  React.useEffect1(
-    () => {
-      setTimeout(
-        () => setIndex(prev => {startIndex: 0, endIndex: prev.endIndex}),
-        1,
-      )
-      ->ignore;
-
-      None;
-    },
-    [||],
-  );
-
   /**
    *
    */
@@ -320,17 +382,19 @@ let make =
             ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
 
           switch (setScrollTop) {
-          | Some(fn) => defaultPositionValue.scrollPosition->float_of_int->fn
+          | Some(fn) =>
+            defaultPosition.scrollPosition->float_of_int->fn;
+            rawHandler(element);
           | None => ()
           };
         },
-        1000,
+        10,
       )
       ->ignore;
 
       None;
     },
-    [||],
+    [|element|],
   );
 
   /**
@@ -369,7 +433,7 @@ let make =
       Some(
         () =>
           onDestroy(
-            ~scrollPosition=scrollTopPosition->React.Ref.current,
+            ~scrollPosition=viewPortRec->React.Ref.current.top,
             ~heightMap=heightMap->React.Ref.current,
           ),
       ),

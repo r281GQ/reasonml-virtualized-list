@@ -68,7 +68,7 @@ function throttle(fn) {
         setTimeout((function (param) {
                 inThrottle[0] = false;
                 return /* () */0;
-              }), 300);
+              }), 100);
         return /* () */0;
       }
     });
@@ -172,7 +172,6 @@ function VirtualizedList(Props) {
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(defaultPosition[/* heightMap */1]);
   var recMap = React.useRef(Belt_HashMapInt.make(100));
-  var scrollTopPosition = React.useRef(0);
   var viewPortRec = React.useRef(/* record */[
         /* top */0,
         /* height */0
@@ -290,17 +289,6 @@ function VirtualizedList(Props) {
         }));
   React.useEffect((function () {
           setTimeout((function (param) {
-                  return Curry._1(setIndex, (function (prev) {
-                                return /* record */[
-                                        /* startIndex */0,
-                                        /* endIndex */prev[/* endIndex */1]
-                                      ];
-                              }));
-                }), 1);
-          return undefined;
-        }), /* array */[]);
-  React.useEffect((function () {
-          setTimeout((function (param) {
                   var setScrollTop = Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                               return prim;
                             })), (function (prim, prim$1) {
@@ -308,13 +296,109 @@ function VirtualizedList(Props) {
                           return /* () */0;
                         }));
                   if (setScrollTop !== undefined) {
-                    return Curry._1(setScrollTop, 15000);
+                    Curry._1(setScrollTop, defaultPosition[/* scrollPosition */0]);
+                    var element$1 = element;
+                    if (element$1 !== undefined) {
+                      var element$2 = Caml_option.valFromOption(element$1);
+                      var viewPortRectangle = viewPortRec.current;
+                      var startItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+                                  return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
+                                              Curry._1(identity, rawData),
+                                              /* record */[
+                                                /* top */0,
+                                                /* height */0
+                                              ]
+                                            ], (function (rectangle) {
+                                                return /* tuple */[
+                                                        Curry._1(identity, rawData),
+                                                        rectangle
+                                                      ];
+                                              }));
+                                })), /* tuple */[
+                            0,
+                            /* record */[
+                              /* top */0,
+                              /* height */0
+                            ]
+                          ], (function (param, item) {
+                              var sumRect = param[1];
+                              var match = (sumRect[/* top */0] + sumRect[/* height */1] | 0) > viewPortRectangle[/* top */0];
+                              if (match) {
+                                return /* tuple */[
+                                        param[0],
+                                        sumRect
+                                      ];
+                              } else {
+                                return item;
+                              }
+                            }));
+                      var endItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+                                  return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
+                                              Curry._1(identity, rawData),
+                                              /* record */[
+                                                /* top */0,
+                                                /* height */0
+                                              ]
+                                            ], (function (rectangle) {
+                                                return /* tuple */[
+                                                        Curry._1(identity, rawData),
+                                                        rectangle
+                                                      ];
+                                              }));
+                                })), /* tuple */[
+                            0,
+                            /* record */[
+                              /* top */0,
+                              /* height */0
+                            ]
+                          ], (function (param, item) {
+                              var sumRect = param[1];
+                              var match = (viewPortRectangle[/* top */0] + viewPortRectangle[/* height */1] | 0) <= sumRect[/* top */0];
+                              if (match) {
+                                return /* tuple */[
+                                        param[0],
+                                        sumRect
+                                      ];
+                              } else {
+                                return item;
+                              }
+                            }));
+                      Curry._1(setIndex, (function (_prev) {
+                              var init = previousSnapshot.current;
+                              previousSnapshot.current = /* record */[
+                                /* startIndex */_prev[/* startIndex */0],
+                                /* endIndex */init[/* endIndex */1]
+                              ];
+                              var init$1 = previousSnapshot.current;
+                              previousSnapshot.current = /* record */[
+                                /* startIndex */init$1[/* startIndex */0],
+                                /* endIndex */_prev[/* endIndex */1]
+                              ];
+                              prevViewPortRec.current = viewPortRec.current;
+                              viewPortRec.current = /* record */[
+                                /* top */element$2.scrollTop | 0,
+                                /* height */element$2.clientHeight
+                              ];
+                              var eid = endItem[0];
+                              var sid = startItem[0];
+                              var match = (sid - bufferCount | 0) < 1;
+                              var match$1 = (eid + bufferCount | 0) > data.length;
+                              return /* record */[
+                                      /* startIndex */match ? 1 : sid - bufferCount | 0,
+                                      /* endIndex */match$1 ? data.length : eid + bufferCount | 0
+                                    ];
+                            }));
+                    }
+                    Curry._1(setCorrection, (function (x) {
+                            return x + 1 | 0;
+                          }));
+                    return /* () */0;
                   } else {
                     return /* () */0;
                   }
-                }), 1000);
+                }), 10);
           return undefined;
-        }), /* array */[]);
+        }), /* array */[element]);
   React.useEffect((function () {
           if (element !== undefined) {
             Caml_option.valFromOption(element).addEventListener("scroll", handleScroll);
@@ -330,7 +414,7 @@ function VirtualizedList(Props) {
         }), /* array */[element]);
   React.useEffect((function () {
           return (function (param) {
-                    return Curry._2(onDestroy, scrollTopPosition.current, heightMap.current);
+                    return Curry._2(onDestroy, viewPortRec.current[/* top */0], heightMap.current);
                   });
         }), /* array */[]);
   React.useEffect((function () {
