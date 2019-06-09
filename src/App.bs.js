@@ -22,9 +22,9 @@ var data = Belt_Array.map(Belt_Array.range(1, 100), (function (id) {
       }));
 
 function App$VList(Props) {
-  Props.scrollPosition;
+  var scrollPosition = Props.scrollPosition;
   var setScrollPosition = Props.setScrollPosition;
-  Props.heightMap;
+  var heightMap = Props.heightMap;
   var setHeightMap = Props.setHeightMap;
   var testRef = React.useRef(null);
   return React.createElement("div", {
@@ -37,6 +37,10 @@ function App$VList(Props) {
                     ]
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
+                  defaultPosition: /* record */[
+                    /* scrollPosition */scrollPosition,
+                    /* heightMap */heightMap
+                  ],
                   onDestroy: (function (scrollPosition, heightMap) {
                       Curry._1(setScrollPosition, (function (param) {
                               return scrollPosition;

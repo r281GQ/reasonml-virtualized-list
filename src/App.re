@@ -36,6 +36,7 @@ module VList = {
           setScrollPosition(_ => scrollPosition);
           setHeightMap(_ => heightMap);
         }}
+        defaultPosition={scrollPosition, heightMap}
         data
         renderItem={data =>
           <Item
