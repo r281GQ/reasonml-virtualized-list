@@ -32,11 +32,12 @@ module VList = {
       className=Css.(style([maxHeight(vh(90.)), overflowY(`scroll)]))>
       <VirtualizedList
         viewPortRef=testRef
+        defaultPosition={Some(scrollPosition)}
+        defaultHeightMap={Some(heightMap)}
         onDestroy={(~scrollPosition, ~heightMap) => {
           setScrollPosition(_ => scrollPosition);
           setHeightMap(_ => heightMap);
         }}
-        defaultPosition={scrollPosition, heightMap}
         data
         renderItem={data =>
           <Item

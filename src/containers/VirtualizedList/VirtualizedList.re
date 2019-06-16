@@ -168,8 +168,10 @@ type padding = {
 [@react.component]
 let make =
     (
+      ~margin: int=0,
       ~bufferCount: int=5,
-      ~defaultPosition: position=defaultPositionValue,
+      ~defaultPosition: option(int),
+      ~defaultHeightMap: option(Belt.HashMap.Int.t(int)),
       ~onDestroy:
          (~scrollPosition: int, ~heightMap: Belt.HashMap.Int.t(int)) => unit=?,
       ~defaultHeight=200,
@@ -185,7 +187,13 @@ let make =
 
   let refMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
 
-  let heightMap = React.useRef(defaultPosition.heightMap);
+  let heightMap =
+    React.useRef(
+      defaultHeightMap->Belt.Option.mapWithDefault(
+        Belt.HashMap.Int.make(~hintSize=100), x =>
+        x
+      ),
+    );
 
   let recMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
 
@@ -380,7 +388,7 @@ let make =
 
           switch (setScrollTop) {
           | Some(fn) =>
-            defaultPosition.scrollPosition->float_of_int->fn;
+            defaultPosition->Belt.Option.mapWithDefault(0., float_of_int)->fn;
             rawHandler(element);
           | None => ()
           };

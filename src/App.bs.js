@@ -5,6 +5,7 @@ var Css = require("bs-css/src/Css.js");
 var Curry = require("bs-platform/lib/js/curry.js");
 var React = require("react");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
+var Caml_option = require("bs-platform/lib/js/caml_option.js");
 var Belt_HashMapInt = require("bs-platform/lib/js/belt_HashMapInt.js");
 var Item$ReactHooksTemplate = require("./components/Item/Item.bs.js");
 var VirtualizedList$ReactHooksTemplate = require("./containers/VirtualizedList/VirtualizedList.bs.js");
@@ -37,10 +38,8 @@ function App$VList(Props) {
                     ]
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
-                  defaultPosition: /* record */[
-                    /* scrollPosition */scrollPosition,
-                    /* heightMap */heightMap
-                  ],
+                  defaultPosition: scrollPosition,
+                  defaultHeightMap: Caml_option.some(heightMap),
                   onDestroy: (function (scrollPosition, heightMap) {
                       Curry._1(setScrollPosition, (function (param) {
                               return scrollPosition;

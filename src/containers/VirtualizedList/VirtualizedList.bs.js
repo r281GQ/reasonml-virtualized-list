@@ -144,33 +144,36 @@ function createNewRecs(heightMap, identity, defaultHeight, data) {
 }
 
 function VirtualizedList(Props) {
+  Props.margin;
   var match = Props.bufferCount;
   var bufferCount = match !== undefined ? match : 5;
-  var match$1 = Props.defaultPosition;
-  var defaultPosition = match$1 !== undefined ? match$1 : defaultPositionValue;
+  var defaultPosition = Props.defaultPosition;
+  var defaultHeightMap = Props.defaultHeightMap;
   var onDestroy = Props.onDestroy;
-  var match$2 = Props.defaultHeight;
-  var defaultHeight = match$2 !== undefined ? match$2 : 200;
+  var match$1 = Props.defaultHeight;
+  var defaultHeight = match$1 !== undefined ? match$1 : 200;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match$3 = React.useState((function () {
+  var match$2 = React.useState((function () {
           return /* record */[
                   /* startIndex */-1,
                   /* endIndex */10
                 ];
         }));
-  var setIndex = match$3[1];
-  var match$4 = match$3[0];
-  var endIndex = match$4[/* endIndex */1];
-  var startIndex = match$4[/* startIndex */0];
-  var match$5 = React.useState((function () {
+  var setIndex = match$2[1];
+  var match$3 = match$2[0];
+  var endIndex = match$3[/* endIndex */1];
+  var startIndex = match$3[/* startIndex */0];
+  var match$4 = React.useState((function () {
           return 0;
         }));
-  var setCorrection = match$5[1];
+  var setCorrection = match$4[1];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
-  var heightMap = React.useRef(defaultPosition[/* heightMap */1]);
+  var heightMap = React.useRef(Belt_Option.mapWithDefault(defaultHeightMap, Belt_HashMapInt.make(100), (function (x) {
+              return x;
+            })));
   var recMap = React.useRef(Belt_HashMapInt.make(100));
   var viewPortRec = React.useRef(/* record */[
         /* top */0,
@@ -296,7 +299,9 @@ function VirtualizedList(Props) {
                           return /* () */0;
                         }));
                   if (setScrollTop !== undefined) {
-                    Curry._1(setScrollTop, defaultPosition[/* scrollPosition */0]);
+                    Curry._1(setScrollTop, Belt_Option.mapWithDefault(defaultPosition, 0, (function (prim) {
+                                return prim;
+                              })));
                     var element$1 = element;
                     if (element$1 !== undefined) {
                       var element$2 = Caml_option.valFromOption(element$1);
