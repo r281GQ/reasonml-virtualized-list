@@ -25,9 +25,6 @@ type state = {
   endIndex: int,
 };
 
-[@bs.val] external setTimeout: (unit => unit, int) => id = "setTimeout";
-[@bs.val] external clearTimeout: id => unit = "clearTimeout";
-
 let recsHeight =
     (
       data: array('data),
@@ -372,7 +369,7 @@ let make =
    */
   React.useEffect1(
     () => {
-      setTimeout(
+      Js.Global.setTimeout(
         () => {
           let setScrollTop =
             viewPortRef
@@ -388,7 +385,7 @@ let make =
           | None => ()
           };
         },
-        10,
+        1,
       )
       ->ignore;
 

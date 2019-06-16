@@ -396,7 +396,7 @@ function VirtualizedList(Props) {
                   } else {
                     return /* () */0;
                   }
-                }), 10);
+                }), 1);
           return undefined;
         }), /* array */[element]);
   React.useEffect((function () {
