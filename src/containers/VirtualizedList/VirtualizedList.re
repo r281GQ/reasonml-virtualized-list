@@ -25,6 +25,8 @@ type state = {
   endIndex: int,
 };
 
+let add = (a: int, b: int) => a + b;
+
 let recsHeight =
     (
       data: array('data),
@@ -44,12 +46,16 @@ let heightDelta = (~data, ~identity, ~rectangles, ~previousRectangles) =>
   recsHeight(data, identity, previousRectangles)
   - recsHeight(data, identity, rectangles);
 
-let calculateHeight = (elementRef, heightMap, id) => {
+let calculateHeight =
+    (~elementRef: Js.Nullable.t(Dom.element), ~heightMap, ~id, ~margin) => {
   elementRef
   ->Js.Nullable.toOption
-  ->Belt.Option.map(Webapi.Dom.HtmlElement.clientHeight)
-  ->Belt.Option.map(height =>
-      Belt.HashMap.Int.set(React.Ref.current(heightMap), id, height)
+  ->Belt.Option.map(x =>
+      x
+      |> Webapi.Dom.Element.getBoundingClientRect
+      |> Webapi.Dom.DomRect.height
+      |> add(margin)
+      |> Belt.HashMap.Int.set(React.Ref.current(heightMap), id)
     )
   ->ignore;
 };
@@ -186,6 +192,8 @@ let make =
   let (_corr, setCorrection) = React.useState(() => 0);
 
   let refMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
+
+  let (ready, setReady) = React.useState(() => false);
 
   let heightMap =
     React.useRef(
@@ -392,6 +400,8 @@ let make =
             rawHandler(element);
           | None => ()
           };
+
+          setReady(_ => true);
         },
         1,
       )
@@ -469,8 +479,8 @@ let make =
 
       refMap
       ->current
-      ->Belt.HashMap.Int.forEach((key, item) =>
-          calculateHeight(item, heightMap, key)
+      ->Belt.HashMap.Int.forEach((key, elementRef) =>
+          calculateHeight(~elementRef, ~heightMap, ~id=key, ~margin)
         );
 
       let recs = createNewRecs(~heightMap, ~identity, ~defaultHeight, ~data);
