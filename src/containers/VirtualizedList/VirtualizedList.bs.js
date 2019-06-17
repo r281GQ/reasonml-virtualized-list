@@ -533,7 +533,8 @@ function VirtualizedList(Props) {
               onRefChange: (function (id, elementRef) {
                   return Belt_HashMapInt.set(refMap.current, id, elementRef);
                 }),
-              renderItem: renderItem
+              renderItem: renderItem,
+              ready: match$6[0]
             });
 }
 

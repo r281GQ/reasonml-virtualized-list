@@ -13,6 +13,34 @@ function List(Props) {
   var identity = Props.identity;
   var onRefChange = Props.onRefChange;
   var renderItem = Props.renderItem;
+  var ready = Props.ready;
+  var elements = Belt_Array.map(Belt_Array.map(data, (function (item) {
+              return /* tuple */[
+                      Curry._1(renderItem, item),
+                      Curry._1(identity, item)
+                    ];
+            })), (function (param) {
+          var id = param[1];
+          var element = param[0];
+          if (ready) {
+            return React.cloneElement(element, {
+                        key: id,
+                        ref: (function (elementRef) {
+                            return Curry._2(onRefChange, id, elementRef);
+                          })
+                      });
+          } else {
+            return React.cloneElement(element, {
+                        key: id,
+                        style: {
+                          opacity: 0
+                        },
+                        ref: (function (elementRef) {
+                            return Curry._2(onRefChange, id, elementRef);
+                          })
+                      });
+          }
+        }));
   return React.createElement("div", {
               className: Css.style(/* :: */[
                     Css.paddingTop(Css.px(beforePadding)),
@@ -21,19 +49,7 @@ function List(Props) {
                       /* [] */0
                     ]
                   ])
-            }, Belt_Array.map(Belt_Array.map(data, (function (item) {
-                        return /* tuple */[
-                                Curry._1(renderItem, item),
-                                Curry._1(identity, item)
-                              ];
-                      })), (function (itemTuple) {
-                    var id = itemTuple[1];
-                    return React.cloneElement(itemTuple[0], {
-                                ref: (function (elementRef) {
-                                    return Curry._2(onRefChange, id, elementRef);
-                                  })
-                              });
-                  })));
+            }, elements);
 }
 
 var make = List;

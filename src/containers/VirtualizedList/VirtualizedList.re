@@ -594,6 +594,7 @@ let make =
         item->identity <= endIndex && item->identity >= startIndex
       )
     }
+    ready
     identity
     renderItem
     beforePadding=startPadding
