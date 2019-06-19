@@ -540,6 +540,10 @@ let make =
     [|startIndex, endIndex|],
   );
 
+  /**
+   *  This sets the iniial padding so the list won't stay shrinked.
+   *  That triggers the <List /> onReady.
+   */
   React.useEffect1(
     () => {
       rawHandler(
