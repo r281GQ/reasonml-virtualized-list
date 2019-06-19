@@ -13,7 +13,12 @@ function List(Props) {
   var identity = Props.identity;
   var onRefChange = Props.onRefChange;
   var renderItem = Props.renderItem;
-  var ready = Props.ready;
+  var onReady = Props.onReady;
+  var match = React.useState((function () {
+          return false;
+        }));
+  var setReady = match[1];
+  var ready = match[0];
   var elements = Belt_Array.map(Belt_Array.map(data, (function (item) {
               return /* tuple */[
                       Curry._1(renderItem, item),
@@ -41,6 +46,20 @@ function List(Props) {
                       });
           }
         }));
+  React.useEffect((function () {
+          var match = afterPadding !== 0;
+          if (match) {
+            if (ready) {
+              
+            } else {
+              Curry._1(onReady, /* () */0);
+              Curry._1(setReady, (function (param) {
+                      return true;
+                    }));
+            }
+          }
+          return undefined;
+        }), /* array */[afterPadding]);
   return React.createElement("div", {
               className: Css.style(/* :: */[
                     Css.paddingTop(Css.px(beforePadding)),
