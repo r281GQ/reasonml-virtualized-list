@@ -146,42 +146,45 @@ function createNewRecs(heightMap, identity, defaultHeight, data) {
 }
 
 function VirtualizedList(Props) {
-  var match = Props.onEndReached;
-  var onEndReached = match !== undefined ? match : (function (param) {
+  var match = Props.loading;
+  var loading = match !== undefined ? match : false;
+  var match$1 = Props.onEndReached;
+  var onEndReached = match$1 !== undefined ? match$1 : (function (param) {
         return /* () */0;
       });
-  var match$1 = Props.headerComponent;
-  var headerComponent = match$1 !== undefined ? Caml_option.valFromOption(match$1) : null;
-  var match$2 = Props.refreshingComponent;
-  var refreshingComponent = match$2 !== undefined ? Caml_option.valFromOption(match$2) : null;
-  var refreshing = Props.refreshing;
-  var match$3 = Props.margin;
-  var margin = match$3 !== undefined ? match$3 : 0;
-  var match$4 = Props.bufferCount;
-  var bufferCount = match$4 !== undefined ? match$4 : 5;
+  var match$2 = Props.headerComponent;
+  var headerComponent = match$2 !== undefined ? Caml_option.valFromOption(match$2) : null;
+  var match$3 = Props.refreshingComponent;
+  var refreshingComponent = match$3 !== undefined ? Caml_option.valFromOption(match$3) : null;
+  var match$4 = Props.refreshing;
+  var refreshing = match$4 !== undefined ? match$4 : false;
+  var match$5 = Props.margin;
+  var margin = match$5 !== undefined ? match$5 : 0;
+  var match$6 = Props.bufferCount;
+  var bufferCount = match$6 !== undefined ? match$6 : 5;
   var defaultPosition = Props.defaultPosition;
   var defaultHeightMap = Props.defaultHeightMap;
   var onDestroy = Props.onDestroy;
-  var match$5 = Props.defaultHeight;
-  var defaultHeight = match$5 !== undefined ? match$5 : 200;
+  var match$7 = Props.defaultHeight;
+  var defaultHeight = match$7 !== undefined ? match$7 : 200;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match$6 = React.useState((function () {
+  var match$8 = React.useState((function () {
           return /* record */[
                   /* startIndex */-1,
                   /* endIndex */10
                 ];
         }));
-  var setIndex = match$6[1];
-  var match$7 = match$6[0];
-  var endIndex = match$7[/* endIndex */1];
-  var startIndex = match$7[/* startIndex */0];
-  var match$8 = React.useState((function () {
+  var setIndex = match$8[1];
+  var match$9 = match$8[0];
+  var endIndex = match$9[/* endIndex */1];
+  var startIndex = match$9[/* startIndex */0];
+  var match$10 = React.useState((function () {
           return 0;
         }));
-  var setCorrection = match$8[1];
+  var setCorrection = match$10[1];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(Belt_Option.mapWithDefault(defaultHeightMap, Belt_HashMapInt.make(100), (function (x) {
               return x;
@@ -532,9 +535,10 @@ function VirtualizedList(Props) {
           return x[/* top */0];
         }));
   var endPadding = lastValue - endValue | 0;
-  var match$9 = !refreshing;
-  if (match$9) {
+  var match$11 = !refreshing;
+  if (match$11) {
     return React.createElement(List$ReactHooksTemplate.make, {
+                loading: loading,
                 headerComponent: headerComponent,
                 afterPadding: endPadding,
                 beforePadding: startPadding,

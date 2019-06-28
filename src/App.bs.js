@@ -32,6 +32,10 @@ function App$VList(Props) {
           return true;
         }));
   var setRefreshing = match[1];
+  var match$1 = React.useState((function () {
+          return false;
+        }));
+  var setLoading = match$1[1];
   React.useEffect((function () {
           setTimeout((function (param) {
                   return Curry._1(setRefreshing, (function (param) {
@@ -50,9 +54,11 @@ function App$VList(Props) {
                     ]
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
+                  loading: match$1[0],
                   onEndReached: (function (param) {
-                      console.log("end reached");
-                      return /* () */0;
+                      return Curry._1(setLoading, (function (param) {
+                                    return true;
+                                  }));
                     }),
                   headerComponent: React.createElement("div", undefined, "Header comp"),
                   refreshingComponent: React.createElement("div", undefined, "..."),

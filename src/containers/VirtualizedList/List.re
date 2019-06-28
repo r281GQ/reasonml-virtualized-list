@@ -1,6 +1,7 @@
 [@react.component]
 let make =
     (
+      ~loading: bool,
       ~headerComponent,
       ~afterPadding: int,
       ~beforePadding: int,
@@ -62,5 +63,6 @@ let make =
     )>
     headerComponent
     elements->React.array
+    {loading ? <div> "..."->React.string </div> : React.null}
   </div>;
 };

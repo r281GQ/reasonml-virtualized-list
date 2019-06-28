@@ -174,10 +174,11 @@ type padding = {
 [@react.component]
 let make =
     (
+      ~loading: bool=false,
       ~onEndReached: unit => unit=() => (),
       ~headerComponent: React.element=React.null,
       ~refreshingComponent: React.element=React.null,
-      ~refreshing: bool,
+      ~refreshing: bool=false,
       ~margin: int=0,
       ~bufferCount: int=5,
       ~defaultPosition: option(int),
@@ -614,6 +615,7 @@ let make =
 
   !refreshing
     ? <List
+        loading
         headerComponent
         data={
           data->Belt.Array.keep(item =>

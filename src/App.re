@@ -27,6 +27,7 @@ module VList = {
   let make = (~scrollPosition, ~setScrollPosition, ~heightMap, ~setHeightMap) => {
     let testRef = React.useRef(Js.Nullable.null);
     let (refreshing, setRefreshing) = React.useState(() => true);
+    let (loading, setLoading) = React.useState(() => false);
 
     React.useEffect1(
       () => {
@@ -41,7 +42,8 @@ module VList = {
       ref={testRef->ReactDOMRe.Ref.domRef}
       className=Css.(style([maxHeight(vh(90.)), overflowY(`scroll)]))>
       <VirtualizedList
-        onEndReached={() => "end reached"->Js.log}
+        loading
+        onEndReached={() => setLoading(_ => true)}
         headerComponent={<div> "Header comp"->React.string </div>}
         refreshingComponent={<div> "..."->React.string </div>}
         refreshing
