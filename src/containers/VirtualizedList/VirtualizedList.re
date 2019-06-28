@@ -174,6 +174,8 @@ type padding = {
 [@react.component]
 let make =
     (
+      ~loadingComponent: React.element=React.null,
+      ~emptyComponent: React.element=React.null,
       ~loading: bool=false,
       ~onEndReached: unit => unit=() => (),
       ~headerComponent: React.element=React.null,
@@ -183,8 +185,7 @@ let make =
       ~bufferCount: int=5,
       ~defaultPosition: option(int),
       ~defaultHeightMap: option(Belt.HashMap.Int.t(int)),
-      ~onDestroy:
-         (~scrollPosition: int, ~heightMap: Belt.HashMap.Int.t(int)) => unit=?,
+      ~onDestroy: (. int, Belt.HashMap.Int.t(int)) => unit=?,
       ~defaultHeight=200,
       ~data: array('data),
       ~identity: 'data => int,
@@ -206,6 +207,9 @@ let make =
       ),
     );
 
+  let dataLength = React.useRef(data->Belt.Array.length);
+  let dataRef = React.useRef(data);
+
   let recMap = React.useRef(Belt.HashMap.Int.make(~hintSize=100));
 
   let viewPortRec = React.useRef({top: 0, height: 0});
@@ -226,7 +230,8 @@ let make =
       let viewPortRectangle = viewPortRec->React.Ref.current;
 
       let startItem =
-        data
+        dataRef
+        ->React.Ref.current
         ->Belt.Array.map(rawData =>
             recMap
             ->React.Ref.current
@@ -243,7 +248,8 @@ let make =
           );
 
       let endItem =
-        data
+        dataRef
+        ->React.Ref.current
         ->Belt.Array.map(rawData =>
             recMap
             ->React.Ref.current
@@ -286,8 +292,8 @@ let make =
         {
           startIndex: sid - bufferCount < 1 ? 1 : sid - bufferCount,
           endIndex:
-            eid + bufferCount > data->Belt.Array.length
-              ? data->Belt.Array.length : eid + bufferCount,
+            eid + bufferCount > dataLength->React.Ref.current
+              ? dataLength->React.Ref.current : eid + bufferCount,
         };
       });
 
@@ -305,7 +311,8 @@ let make =
           let viewPortRectangle = viewPortRec->React.Ref.current;
 
           let startItem =
-            data
+            dataRef
+            ->React.Ref.current
             ->Belt.Array.map(rawData =>
                 recMap
                 ->React.Ref.current
@@ -322,7 +329,8 @@ let make =
               );
 
           let endItem =
-            data
+            dataRef
+            ->React.Ref.current
             ->Belt.Array.map(rawData =>
                 recMap
                 ->React.Ref.current
@@ -370,8 +378,8 @@ let make =
             {
               startIndex: sid - bufferCount < 1 ? 1 : sid - bufferCount,
               endIndex:
-                eid + bufferCount > data->Belt.Array.length
-                  ? data->Belt.Array.length : eid + bufferCount,
+                eid + bufferCount > dataLength->React.Ref.current
+                  ? dataLength->React.Ref.current : eid + bufferCount,
             };
           });
 
@@ -394,10 +402,53 @@ let make =
         )
       ->Belt.Option.mapWithDefault(0, x => x.top + x.height);
 
-    let hasReachedEnd = top > listHeight - height * 2;
+    let hasReachedEnd =
+      top->float_of_int > listHeight->float_of_int
+      -. height->float_of_int
+      *. 1.3;
 
     hasReachedEnd ? onEndReached() : ();
   };
+
+  /**
+   * Attaches the onEndReached eventListener to the viewport.
+   *
+   * According to our Dan Abramov this is really cheap even using this kind of useEffect.
+   */
+  React.useEffect(() => {
+    switch (
+      viewPortRef
+      ->React.Ref.current
+      ->Js.Nullable.toOption
+      ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+    ) {
+    | Some(element) =>
+      Webapi.Dom.HtmlElement.addEventListener(
+        "scroll",
+        onEndReachHandler,
+        element,
+      )
+    | None => ()
+    };
+
+    Some(
+      () =>
+        switch (
+          viewPortRef
+          ->React.Ref.current
+          ->Js.Nullable.toOption
+          ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+        ) {
+        | Some(element) =>
+          Webapi.Dom.HtmlElement.removeEventListener(
+            "scroll",
+            onEndReachHandler,
+            element,
+          )
+        | None => ()
+        },
+    );
+  });
 
   /**
    * Attaches the eventlistener to the viewport.
@@ -415,12 +466,7 @@ let make =
           "scroll",
           handleScroll,
           element,
-        );
-        Webapi.Dom.HtmlElement.addEventListener(
-          "scroll",
-          onEndReachHandler,
-          element,
-        );
+        )
       | None => ()
       };
 
@@ -437,12 +483,7 @@ let make =
               "scroll",
               handleScroll,
               element,
-            );
-            Webapi.Dom.HtmlElement.removeEventListener(
-              "scroll",
-              onEndReachHandler,
-              element,
-            );
+            )
           | None => ()
           },
       );
@@ -454,12 +495,28 @@ let make =
     () =>
       Some(
         () =>
-          onDestroy(
-            ~scrollPosition=viewPortRec->React.Ref.current.top,
-            ~heightMap=heightMap->React.Ref.current,
+          onDestroy(.
+            viewPortRec->React.Ref.current.top,
+            heightMap->React.Ref.current,
           ),
       ),
     [||],
+  );
+
+  React.useEffect1(
+    () => {
+      dataLength->React.Ref.setCurrent(data->Belt.Array.length);
+      dataRef->React.Ref.setCurrent(data);
+      rawHandler(
+        viewPortRef
+        ->React.Ref.current
+        ->Js.Nullable.toOption
+        ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement),
+      );
+
+      None;
+    },
+    [|data->Belt.Array.length|],
   );
 
   /**
@@ -568,7 +625,7 @@ let make =
 
       None;
     },
-    [|startIndex, endIndex|],
+    [|startIndex, endIndex, data->Belt.Array.length|],
   );
 
   /**
@@ -613,63 +670,68 @@ let make =
     lastValue - endValue;
   };
 
-  !refreshing
-    ? <List
-        loading
-        headerComponent
-        data={
-          data->Belt.Array.keep(item =>
-            item->identity <= endIndex && item->identity >= startIndex
-          )
-        }
-        onReady={() => {
-          let setScrollTop =
+  switch (refreshing, data->Belt.Array.length === 0) {
+  | (true, _) => refreshingComponent
+  | (false, true) => [|headerComponent, emptyComponent|]->React.array
+  | (_, _) =>
+    <List
+      endIndex
+      loading
+      loadingComponent
+      headerComponent
+      data={
+        data->Belt.Array.keep(item =>
+          item->identity <= endIndex && item->identity >= startIndex
+        )
+      }
+      onReady={() => {
+        let setScrollTop =
+          viewPortRef
+          ->React.Ref.current
+          ->Js.Nullable.toOption
+          ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+          ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
+
+        let recs =
+          createNewRecs(~heightMap, ~identity, ~defaultHeight, ~data);
+
+        recMap->React.Ref.setCurrent(recs);
+
+        switch (setScrollTop) {
+        | Some(fn) =>
+          defaultPosition->Belt.Option.mapWithDefault(0., float_of_int)->fn;
+
+          switch (
             viewPortRef
             ->React.Ref.current
             ->Js.Nullable.toOption
             ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-            ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
-
-          let recs =
-            createNewRecs(~heightMap, ~identity, ~defaultHeight, ~data);
-
-          recMap->React.Ref.setCurrent(recs);
-
-          switch (setScrollTop) {
-          | Some(fn) =>
-            defaultPosition->Belt.Option.mapWithDefault(0., float_of_int)->fn;
-
-            switch (
-              viewPortRef
-              ->React.Ref.current
-              ->Js.Nullable.toOption
-              ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-            ) {
-            | Some(element) =>
-              viewPortRec->React.Ref.setCurrent({
-                height: element->Webapi.Dom.HtmlElement.clientHeight,
-                top: defaultPosition->Belt.Option.mapWithDefault(0, x => x),
-              })
-            | None => ()
-            };
-
-            rawHandler(
-              viewPortRef
-              ->React.Ref.current
-              ->Js.Nullable.toOption
-              ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement),
-            );
-
+          ) {
+          | Some(element) =>
+            viewPortRec->React.Ref.setCurrent({
+              height: element->Webapi.Dom.HtmlElement.clientHeight,
+              top: defaultPosition->Belt.Option.mapWithDefault(0, x => x),
+            })
           | None => ()
           };
-        }}
-        identity
-        renderItem
-        beforePadding=startPadding
-        afterPadding=endPadding
-        onRefChange={(id, elementRef) =>
-          Belt.HashMap.Int.set(refMap->React.Ref.current, id, elementRef)
-        }
-      />
-    : refreshingComponent;
+
+          rawHandler(
+            viewPortRef
+            ->React.Ref.current
+            ->Js.Nullable.toOption
+            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement),
+          );
+
+        | None => ()
+        };
+      }}
+      identity
+      renderItem
+      beforePadding=startPadding
+      afterPadding=endPadding
+      onRefChange={(id, elementRef) =>
+        Belt.HashMap.Int.set(refMap->React.Ref.current, id, elementRef)
+      }
+    />
+  };
 };

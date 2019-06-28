@@ -1,6 +1,8 @@
 [@react.component]
 let make =
     (
+      ~loadingComponent,
+      ~endIndex,
       ~loading: bool,
       ~headerComponent,
       ~afterPadding: int,
@@ -45,7 +47,7 @@ let make =
 
   React.useEffect1(
     () => {
-      switch (afterPadding !== 0, ready) {
+      switch (afterPadding !== 0 || endIndex < 10, ready) {
       | (true, false) =>
         onReady();
         setReady(_ => true);
@@ -63,6 +65,6 @@ let make =
     )>
     headerComponent
     elements->React.array
-    {loading ? <div> "..."->React.string </div> : React.null}
+    {loading ? loadingComponent : React.null}
   </div>;
 };

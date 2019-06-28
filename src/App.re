@@ -50,7 +50,7 @@ module VList = {
         viewPortRef=testRef
         defaultPosition={Some(scrollPosition)}
         defaultHeightMap={Some(heightMap)}
-        onDestroy={(~scrollPosition, ~heightMap) => {
+        onDestroy={(. scrollPosition, heightMap) => {
           setScrollPosition(_ => scrollPosition);
           setHeightMap(_ => heightMap);
         }}

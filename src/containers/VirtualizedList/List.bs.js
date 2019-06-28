@@ -7,6 +7,8 @@ var React = require("react");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 
 function List(Props) {
+  var loadingComponent = Props.loadingComponent;
+  var endIndex = Props.endIndex;
   var loading = Props.loading;
   var headerComponent = Props.headerComponent;
   var afterPadding = Props.afterPadding;
@@ -49,7 +51,7 @@ function List(Props) {
           }
         }));
   React.useEffect((function () {
-          var match = afterPadding !== 0;
+          var match = afterPadding !== 0 || endIndex < 10;
           if (match) {
             if (ready) {
               
@@ -70,7 +72,7 @@ function List(Props) {
                       /* [] */0
                     ]
                   ])
-            }, headerComponent, elements, loading ? React.createElement("div", undefined, "...") : null);
+            }, headerComponent, elements, loading ? loadingComponent : null);
 }
 
 var make = List;

@@ -146,49 +146,55 @@ function createNewRecs(heightMap, identity, defaultHeight, data) {
 }
 
 function VirtualizedList(Props) {
-  var match = Props.loading;
-  var loading = match !== undefined ? match : false;
-  var match$1 = Props.onEndReached;
-  var onEndReached = match$1 !== undefined ? match$1 : (function (param) {
+  var match = Props.loadingComponent;
+  var loadingComponent = match !== undefined ? Caml_option.valFromOption(match) : null;
+  var match$1 = Props.emptyComponent;
+  var emptyComponent = match$1 !== undefined ? Caml_option.valFromOption(match$1) : null;
+  var match$2 = Props.loading;
+  var loading = match$2 !== undefined ? match$2 : false;
+  var match$3 = Props.onEndReached;
+  var onEndReached = match$3 !== undefined ? match$3 : (function (param) {
         return /* () */0;
       });
-  var match$2 = Props.headerComponent;
-  var headerComponent = match$2 !== undefined ? Caml_option.valFromOption(match$2) : null;
-  var match$3 = Props.refreshingComponent;
-  var refreshingComponent = match$3 !== undefined ? Caml_option.valFromOption(match$3) : null;
-  var match$4 = Props.refreshing;
-  var refreshing = match$4 !== undefined ? match$4 : false;
-  var match$5 = Props.margin;
-  var margin = match$5 !== undefined ? match$5 : 0;
-  var match$6 = Props.bufferCount;
-  var bufferCount = match$6 !== undefined ? match$6 : 5;
+  var match$4 = Props.headerComponent;
+  var headerComponent = match$4 !== undefined ? Caml_option.valFromOption(match$4) : null;
+  var match$5 = Props.refreshingComponent;
+  var refreshingComponent = match$5 !== undefined ? Caml_option.valFromOption(match$5) : null;
+  var match$6 = Props.refreshing;
+  var refreshing = match$6 !== undefined ? match$6 : false;
+  var match$7 = Props.margin;
+  var margin = match$7 !== undefined ? match$7 : 0;
+  var match$8 = Props.bufferCount;
+  var bufferCount = match$8 !== undefined ? match$8 : 5;
   var defaultPosition = Props.defaultPosition;
   var defaultHeightMap = Props.defaultHeightMap;
   var onDestroy = Props.onDestroy;
-  var match$7 = Props.defaultHeight;
-  var defaultHeight = match$7 !== undefined ? match$7 : 200;
+  var match$9 = Props.defaultHeight;
+  var defaultHeight = match$9 !== undefined ? match$9 : 200;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match$8 = React.useState((function () {
+  var match$10 = React.useState((function () {
           return /* record */[
                   /* startIndex */-1,
                   /* endIndex */10
                 ];
         }));
-  var setIndex = match$8[1];
-  var match$9 = match$8[0];
-  var endIndex = match$9[/* endIndex */1];
-  var startIndex = match$9[/* startIndex */0];
-  var match$10 = React.useState((function () {
+  var setIndex = match$10[1];
+  var match$11 = match$10[0];
+  var endIndex = match$11[/* endIndex */1];
+  var startIndex = match$11[/* startIndex */0];
+  var match$12 = React.useState((function () {
           return 0;
         }));
-  var setCorrection = match$10[1];
+  var setCorrection = match$12[1];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(Belt_Option.mapWithDefault(defaultHeightMap, Belt_HashMapInt.make(100), (function (x) {
               return x;
             })));
+  var dataLength = React.useRef(data.length);
+  var dataRef = React.useRef(data);
   var recMap = React.useRef(Belt_HashMapInt.make(100));
   var viewPortRec = React.useRef(/* record */[
         /* top */0,
@@ -209,7 +215,7 @@ function VirtualizedList(Props) {
     if (element !== undefined) {
       var element$1 = Caml_option.valFromOption(element);
       var viewPortRectangle = viewPortRec.current;
-      var startItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+      var startItem = Belt_Array.reduce(Belt_Array.map(dataRef.current, (function (rawData) {
                   return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
                               Curry._1(identity, rawData),
                               /* record */[
@@ -240,7 +246,7 @@ function VirtualizedList(Props) {
                 return item;
               }
             }));
-      var endItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+      var endItem = Belt_Array.reduce(Belt_Array.map(dataRef.current, (function (rawData) {
                   return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
                               Curry._1(identity, rawData),
                               /* record */[
@@ -290,10 +296,10 @@ function VirtualizedList(Props) {
               var eid = endItem[0];
               var sid = startItem[0];
               var match = (sid - bufferCount | 0) < 1;
-              var match$1 = (eid + bufferCount | 0) > data.length;
+              var match$1 = (eid + bufferCount | 0) > dataLength.current;
               return /* record */[
                       /* startIndex */match ? 1 : sid - bufferCount | 0,
-                      /* endIndex */match$1 ? data.length : eid + bufferCount | 0
+                      /* endIndex */match$1 ? dataLength.current : eid + bufferCount | 0
                     ];
             }));
     }
@@ -306,7 +312,7 @@ function VirtualizedList(Props) {
               if (element !== undefined) {
                 var element$1 = Caml_option.valFromOption(element);
                 var viewPortRectangle = viewPortRec.current;
-                var startItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+                var startItem = Belt_Array.reduce(Belt_Array.map(dataRef.current, (function (rawData) {
                             return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
                                         Curry._1(identity, rawData),
                                         /* record */[
@@ -337,7 +343,7 @@ function VirtualizedList(Props) {
                           return item;
                         }
                       }));
-                var endItem = Belt_Array.reduce(Belt_Array.map(data, (function (rawData) {
+                var endItem = Belt_Array.reduce(Belt_Array.map(dataRef.current, (function (rawData) {
                             return Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Curry._1(identity, rawData)), /* tuple */[
                                         Curry._1(identity, rawData),
                                         /* record */[
@@ -387,10 +393,10 @@ function VirtualizedList(Props) {
                         var eid = endItem[0];
                         var sid = startItem[0];
                         var match = (sid - bufferCount | 0) < 1;
-                        var match$1 = (eid + bufferCount | 0) > data.length;
+                        var match$1 = (eid + bufferCount | 0) > dataLength.current;
                         return /* record */[
                                 /* startIndex */match ? 1 : sid - bufferCount | 0,
-                                /* endIndex */match$1 ? data.length : eid + bufferCount | 0
+                                /* endIndex */match$1 ? dataLength.current : eid + bufferCount | 0
                               ];
                       }));
               }
@@ -407,7 +413,7 @@ function VirtualizedList(Props) {
     var listHeight = Belt_Option.mapWithDefault(Belt_HashMapInt.get(recMap.current, Belt_HashMapInt.size(recMap.current)), 0, (function (x) {
             return x[/* top */0] + x[/* height */1] | 0;
           }));
-    var hasReachedEnd = match[/* top */0] > (listHeight - (match[/* height */1] << 1) | 0);
+    var hasReachedEnd = match[/* top */0] > listHeight - match[/* height */1] * 1.3;
     if (hasReachedEnd) {
       return Curry._1(onEndReached, /* () */0);
     } else {
@@ -419,18 +425,33 @@ function VirtualizedList(Props) {
                   return prim;
                 }));
           if (match !== undefined) {
-            var element = Caml_option.valFromOption(match);
-            element.addEventListener("scroll", handleScroll);
-            element.addEventListener("scroll", onEndReachHandler);
+            Caml_option.valFromOption(match).addEventListener("scroll", onEndReachHandler);
           }
           return (function (param) {
                     var match = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                             return prim;
                           }));
                     if (match !== undefined) {
-                      var element = Caml_option.valFromOption(match);
-                      element.removeEventListener("scroll", handleScroll);
-                      element.removeEventListener("scroll", onEndReachHandler);
+                      Caml_option.valFromOption(match).removeEventListener("scroll", onEndReachHandler);
+                      return /* () */0;
+                    } else {
+                      return /* () */0;
+                    }
+                  });
+        }));
+  React.useEffect((function () {
+          var match = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+                  return prim;
+                }));
+          if (match !== undefined) {
+            Caml_option.valFromOption(match).addEventListener("scroll", handleScroll);
+          }
+          return (function (param) {
+                    var match = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+                            return prim;
+                          }));
+                    if (match !== undefined) {
+                      Caml_option.valFromOption(match).removeEventListener("scroll", handleScroll);
                       return /* () */0;
                     } else {
                       return /* () */0;
@@ -439,9 +460,17 @@ function VirtualizedList(Props) {
         }), /* array */[element]);
   React.useEffect((function () {
           return (function (param) {
-                    return Curry._2(onDestroy, viewPortRec.current[/* top */0], heightMap.current);
+                    return onDestroy(viewPortRec.current[/* top */0], heightMap.current);
                   });
         }), /* array */[]);
+  React.useEffect((function () {
+          dataLength.current = data.length;
+          dataRef.current = data;
+          rawHandler(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+                      return prim;
+                    })));
+          return undefined;
+        }), /* array */[data.length]);
   React.useEffect((function () {
           var prevRec = Belt_HashMapInt.copy(recMap.current);
           Belt_HashMapInt.forEach(refMap.current, (function (key, elementRef) {
@@ -517,7 +546,8 @@ function VirtualizedList(Props) {
           return undefined;
         }), /* array */[
         startIndex,
-        endIndex
+        endIndex,
+        data.length
       ]);
   React.useEffect((function () {
           rawHandler(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
@@ -535,9 +565,18 @@ function VirtualizedList(Props) {
           return x[/* top */0];
         }));
   var endPadding = lastValue - endValue | 0;
-  var match$11 = !refreshing;
-  if (match$11) {
+  var match$13 = data.length === 0;
+  if (refreshing) {
+    return refreshingComponent;
+  } else if (match$13) {
+    return /* array */[
+            headerComponent,
+            emptyComponent
+          ];
+  } else {
     return React.createElement(List$ReactHooksTemplate.make, {
+                loadingComponent: loadingComponent,
+                endIndex: endIndex,
                 loading: loading,
                 headerComponent: headerComponent,
                 afterPadding: endPadding,
@@ -586,8 +625,6 @@ function VirtualizedList(Props) {
                     }
                   })
               });
-  } else {
-    return refreshingComponent;
   }
 }
 
