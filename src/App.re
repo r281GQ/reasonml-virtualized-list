@@ -41,6 +41,8 @@ module VList = {
       ref={testRef->ReactDOMRe.Ref.domRef}
       className=Css.(style([maxHeight(vh(90.)), overflowY(`scroll)]))>
       <VirtualizedList
+        onEndReached={() => "end reached"->Js.log}
+        headerComponent={<div> "Header comp"->React.string </div>}
         refreshingComponent={<div> "..."->React.string </div>}
         refreshing
         viewPortRef=testRef

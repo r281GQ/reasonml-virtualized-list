@@ -1,6 +1,7 @@
 [@react.component]
 let make =
     (
+      ~headerComponent,
       ~afterPadding: int,
       ~beforePadding: int,
       ~data,
@@ -59,6 +60,7 @@ let make =
     className=Css.(
       style([beforePadding->px->paddingTop, afterPadding->px->paddingBottom])
     )>
+    headerComponent
     elements->React.array
   </div>;
 };

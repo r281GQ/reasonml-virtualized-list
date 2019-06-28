@@ -174,6 +174,8 @@ type padding = {
 [@react.component]
 let make =
     (
+      ~onEndReached: unit => unit=() => (),
+      ~headerComponent: React.element=React.null,
       ~refreshingComponent: React.element=React.null,
       ~refreshing: bool,
       ~margin: int=0,
@@ -380,6 +382,22 @@ let make =
       Webapi.requestAnimationFrame,
     );
 
+  let onEndReachHandler = _e => {
+    let {top, height} = viewPortRec->React.Ref.current;
+
+    let listHeight =
+      recMap
+      ->React.Ref.current
+      ->Belt.HashMap.Int.get(
+          Belt.HashMap.Int.size(recMap->React.Ref.current),
+        )
+      ->Belt.Option.mapWithDefault(0, x => x.top + x.height);
+
+    let hasReachedEnd = top > listHeight - height * 2;
+
+    hasReachedEnd ? onEndReached() : ();
+  };
+
   /**
    * Attaches the eventlistener to the viewport.
    */
@@ -396,7 +414,12 @@ let make =
           "scroll",
           handleScroll,
           element,
-        )
+        );
+        Webapi.Dom.HtmlElement.addEventListener(
+          "scroll",
+          onEndReachHandler,
+          element,
+        );
       | None => ()
       };
 
@@ -413,7 +436,12 @@ let make =
               "scroll",
               handleScroll,
               element,
-            )
+            );
+            Webapi.Dom.HtmlElement.removeEventListener(
+              "scroll",
+              onEndReachHandler,
+              element,
+            );
           | None => ()
           },
       );
@@ -586,6 +614,7 @@ let make =
 
   !refreshing
     ? <List
+        headerComponent
         data={
           data->Belt.Array.keep(item =>
             item->identity <= endIndex && item->identity >= startIndex

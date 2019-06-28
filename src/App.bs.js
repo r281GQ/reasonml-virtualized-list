@@ -50,6 +50,11 @@ function App$VList(Props) {
                     ]
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
+                  onEndReached: (function (param) {
+                      console.log("end reached");
+                      return /* () */0;
+                    }),
+                  headerComponent: React.createElement("div", undefined, "Header comp"),
                   refreshingComponent: React.createElement("div", undefined, "..."),
                   refreshing: match[0],
                   defaultPosition: scrollPosition,

@@ -7,6 +7,7 @@ var React = require("react");
 var Belt_Array = require("bs-platform/lib/js/belt_Array.js");
 
 function List(Props) {
+  var headerComponent = Props.headerComponent;
   var afterPadding = Props.afterPadding;
   var beforePadding = Props.beforePadding;
   var data = Props.data;
@@ -68,7 +69,7 @@ function List(Props) {
                       /* [] */0
                     ]
                   ])
-            }, elements);
+            }, headerComponent, elements);
 }
 
 var make = List;
