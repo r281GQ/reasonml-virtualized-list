@@ -26,11 +26,23 @@ module VList = {
   [@react.component]
   let make = (~scrollPosition, ~setScrollPosition, ~heightMap, ~setHeightMap) => {
     let testRef = React.useRef(Js.Nullable.null);
+    let (refreshing, setRefreshing) = React.useState(() => true);
+
+    React.useEffect1(
+      () => {
+        Js.Global.setTimeout(() => setRefreshing(_ => false), 1000)->ignore;
+
+        None;
+      },
+      [||],
+    );
 
     <div
       ref={testRef->ReactDOMRe.Ref.domRef}
       className=Css.(style([maxHeight(vh(90.)), overflowY(`scroll)]))>
       <VirtualizedList
+        refreshingComponent={<div> "..."->React.string </div>}
+        refreshing
         viewPortRef=testRef
         defaultPosition={Some(scrollPosition)}
         defaultHeightMap={Some(heightMap)}

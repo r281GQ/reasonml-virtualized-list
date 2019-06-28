@@ -146,33 +146,36 @@ function createNewRecs(heightMap, identity, defaultHeight, data) {
 }
 
 function VirtualizedList(Props) {
-  var match = Props.margin;
-  var margin = match !== undefined ? match : 0;
-  var match$1 = Props.bufferCount;
-  var bufferCount = match$1 !== undefined ? match$1 : 5;
+  var match = Props.refreshingComponent;
+  var refreshingComponent = match !== undefined ? Caml_option.valFromOption(match) : null;
+  var refreshing = Props.refreshing;
+  var match$1 = Props.margin;
+  var margin = match$1 !== undefined ? match$1 : 0;
+  var match$2 = Props.bufferCount;
+  var bufferCount = match$2 !== undefined ? match$2 : 5;
   var defaultPosition = Props.defaultPosition;
   var defaultHeightMap = Props.defaultHeightMap;
   var onDestroy = Props.onDestroy;
-  var match$2 = Props.defaultHeight;
-  var defaultHeight = match$2 !== undefined ? match$2 : 200;
+  var match$3 = Props.defaultHeight;
+  var defaultHeight = match$3 !== undefined ? match$3 : 200;
   var data = Props.data;
   var identity = Props.identity;
   var viewPortRef = Props.viewPortRef;
   var renderItem = Props.renderItem;
-  var match$3 = React.useState((function () {
+  var match$4 = React.useState((function () {
           return /* record */[
                   /* startIndex */-1,
                   /* endIndex */10
                 ];
         }));
-  var setIndex = match$3[1];
-  var match$4 = match$3[0];
-  var endIndex = match$4[/* endIndex */1];
-  var startIndex = match$4[/* startIndex */0];
-  var match$5 = React.useState((function () {
+  var setIndex = match$4[1];
+  var match$5 = match$4[0];
+  var endIndex = match$5[/* endIndex */1];
+  var startIndex = match$5[/* startIndex */0];
+  var match$6 = React.useState((function () {
           return 0;
         }));
-  var setCorrection = match$5[1];
+  var setCorrection = match$6[1];
   var refMap = React.useRef(Belt_HashMapInt.make(100));
   var heightMap = React.useRef(Belt_Option.mapWithDefault(defaultHeightMap, Belt_HashMapInt.make(100), (function (x) {
               return x;
@@ -507,53 +510,58 @@ function VirtualizedList(Props) {
           return x[/* top */0];
         }));
   var endPadding = lastValue - endValue | 0;
-  return React.createElement(List$ReactHooksTemplate.make, {
-              afterPadding: endPadding,
-              beforePadding: startPadding,
-              data: Belt_Array.keep(data, (function (item) {
-                      if (Curry._1(identity, item) <= endIndex) {
-                        return Curry._1(identity, item) >= startIndex;
-                      } else {
-                        return false;
-                      }
-                    })),
-              identity: identity,
-              onRefChange: (function (id, elementRef) {
-                  return Belt_HashMapInt.set(refMap.current, id, elementRef);
-                }),
-              renderItem: renderItem,
-              onReady: (function (param) {
-                  var setScrollTop = Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-                              return prim;
-                            })), (function (prim, prim$1) {
-                          prim.scrollTop = prim$1;
-                          return /* () */0;
-                        }));
-                  var recs = createNewRecs(heightMap, identity, defaultHeight, data);
-                  recMap.current = recs;
-                  if (setScrollTop !== undefined) {
-                    Curry._1(setScrollTop, Belt_Option.mapWithDefault(defaultPosition, 0, (function (prim) {
+  var match$7 = !refreshing;
+  if (match$7) {
+    return React.createElement(List$ReactHooksTemplate.make, {
+                afterPadding: endPadding,
+                beforePadding: startPadding,
+                data: Belt_Array.keep(data, (function (item) {
+                        if (Curry._1(identity, item) <= endIndex) {
+                          return Curry._1(identity, item) >= startIndex;
+                        } else {
+                          return false;
+                        }
+                      })),
+                identity: identity,
+                onRefChange: (function (id, elementRef) {
+                    return Belt_HashMapInt.set(refMap.current, id, elementRef);
+                  }),
+                renderItem: renderItem,
+                onReady: (function (param) {
+                    var setScrollTop = Belt_Option.map(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
                                 return prim;
-                              })));
-                    var match = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-                            return prim;
+                              })), (function (prim, prim$1) {
+                            prim.scrollTop = prim$1;
+                            return /* () */0;
                           }));
-                    if (match !== undefined) {
-                      viewPortRec.current = /* record */[
-                        /* top */Belt_Option.mapWithDefault(defaultPosition, 0, (function (x) {
-                                return x;
-                              })),
-                        /* height */Caml_option.valFromOption(match).clientHeight
-                      ];
+                    var recs = createNewRecs(heightMap, identity, defaultHeight, data);
+                    recMap.current = recs;
+                    if (setScrollTop !== undefined) {
+                      Curry._1(setScrollTop, Belt_Option.mapWithDefault(defaultPosition, 0, (function (prim) {
+                                  return prim;
+                                })));
+                      var match = Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+                              return prim;
+                            }));
+                      if (match !== undefined) {
+                        viewPortRec.current = /* record */[
+                          /* top */Belt_Option.mapWithDefault(defaultPosition, 0, (function (x) {
+                                  return x;
+                                })),
+                          /* height */Caml_option.valFromOption(match).clientHeight
+                        ];
+                      }
+                      return rawHandler(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
+                                        return prim;
+                                      })));
+                    } else {
+                      return /* () */0;
                     }
-                    return rawHandler(Belt_Option.map(Caml_option.nullable_to_opt(viewPortRef.current), (function (prim) {
-                                      return prim;
-                                    })));
-                  } else {
-                    return /* () */0;
-                  }
-                })
-            });
+                  })
+              });
+  } else {
+    return refreshingComponent;
+  }
 }
 
 var make = VirtualizedList;

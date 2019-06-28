@@ -174,6 +174,8 @@ type padding = {
 [@react.component]
 let make =
     (
+      ~refreshingComponent: React.element=React.null,
+      ~refreshing: bool,
       ~margin: int=0,
       ~bufferCount: int=5,
       ~defaultPosition: option(int),
@@ -582,58 +584,61 @@ let make =
     lastValue - endValue;
   };
 
-  <List
-    data={
-      data->Belt.Array.keep(item =>
-        item->identity <= endIndex && item->identity >= startIndex
-      )
-    }
-    onReady={() => {
-      let setScrollTop =
-        viewPortRef
-        ->React.Ref.current
-        ->Js.Nullable.toOption
-        ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-        ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
+  !refreshing
+    ? <List
+        data={
+          data->Belt.Array.keep(item =>
+            item->identity <= endIndex && item->identity >= startIndex
+          )
+        }
+        onReady={() => {
+          let setScrollTop =
+            viewPortRef
+            ->React.Ref.current
+            ->Js.Nullable.toOption
+            ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ->Belt.Option.map(Webapi.Dom.HtmlElement.setScrollTop);
 
-      let recs = createNewRecs(~heightMap, ~identity, ~defaultHeight, ~data);
+          let recs =
+            createNewRecs(~heightMap, ~identity, ~defaultHeight, ~data);
 
-      recMap->React.Ref.setCurrent(recs);
+          recMap->React.Ref.setCurrent(recs);
 
-      switch (setScrollTop) {
-      | Some(fn) =>
-        defaultPosition->Belt.Option.mapWithDefault(0., float_of_int)->fn;
+          switch (setScrollTop) {
+          | Some(fn) =>
+            defaultPosition->Belt.Option.mapWithDefault(0., float_of_int)->fn;
 
-        switch (
-          viewPortRef
-          ->React.Ref.current
-          ->Js.Nullable.toOption
-          ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
-        ) {
-        | Some(element) =>
-          viewPortRec->React.Ref.setCurrent({
-            height: element->Webapi.Dom.HtmlElement.clientHeight,
-            top: defaultPosition->Belt.Option.mapWithDefault(0, x => x),
-          })
-        | None => ()
-        };
+            switch (
+              viewPortRef
+              ->React.Ref.current
+              ->Js.Nullable.toOption
+              ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement)
+            ) {
+            | Some(element) =>
+              viewPortRec->React.Ref.setCurrent({
+                height: element->Webapi.Dom.HtmlElement.clientHeight,
+                top: defaultPosition->Belt.Option.mapWithDefault(0, x => x),
+              })
+            | None => ()
+            };
 
-        rawHandler(
-          viewPortRef
-          ->React.Ref.current
-          ->Js.Nullable.toOption
-          ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement),
-        );
+            rawHandler(
+              viewPortRef
+              ->React.Ref.current
+              ->Js.Nullable.toOption
+              ->Belt.Option.map(Webapi.Dom.Element.unsafeAsHtmlElement),
+            );
 
-      | None => ()
-      };
-    }}
-    identity
-    renderItem
-    beforePadding=startPadding
-    afterPadding=endPadding
-    onRefChange={(id, elementRef) =>
-      Belt.HashMap.Int.set(refMap->React.Ref.current, id, elementRef)
-    }
-  />;
+          | None => ()
+          };
+        }}
+        identity
+        renderItem
+        beforePadding=startPadding
+        afterPadding=endPadding
+        onRefChange={(id, elementRef) =>
+          Belt.HashMap.Int.set(refMap->React.Ref.current, id, elementRef)
+        }
+      />
+    : refreshingComponent;
 };

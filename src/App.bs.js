@@ -28,6 +28,18 @@ function App$VList(Props) {
   var heightMap = Props.heightMap;
   var setHeightMap = Props.setHeightMap;
   var testRef = React.useRef(null);
+  var match = React.useState((function () {
+          return true;
+        }));
+  var setRefreshing = match[1];
+  React.useEffect((function () {
+          setTimeout((function (param) {
+                  return Curry._1(setRefreshing, (function (param) {
+                                return false;
+                              }));
+                }), 1000);
+          return undefined;
+        }), /* array */[]);
   return React.createElement("div", {
               ref: testRef,
               className: Css.style(/* :: */[
@@ -38,6 +50,8 @@ function App$VList(Props) {
                     ]
                   ])
             }, React.createElement(VirtualizedList$ReactHooksTemplate.make, {
+                  refreshingComponent: React.createElement("div", undefined, "..."),
+                  refreshing: match[0],
                   defaultPosition: scrollPosition,
                   defaultHeightMap: Caml_option.some(heightMap),
                   onDestroy: (function (scrollPosition, heightMap) {
